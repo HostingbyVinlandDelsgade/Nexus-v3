@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Inventory System</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #4f46e5; /* Indigo 600 */
+            --primary-hover: #4338ca;
+            --bg-light: #f8fafc;
+            --sidebar-bg: #0f172a; /* Slate 900 */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+            color: #1e293b;
+            overflow: hidden; /* App-like feel */
+        }
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            color: white;
+            width: 260px;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link {
+            color: #94a3b8;
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+        }
+        .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .main-content {
+            height: 100vh;
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 1.5rem;
+        }
+        .stat-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        /* POS Styles */
+        .pos-product-card {
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 100%;
+        }
+        .pos-product-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .cart-item {
+            border-bottom: 1px solid #f1f5f9;
+            padding: 0.75rem 0;
+        }
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--sidebar-bg);
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="login-container">
+        <div class="card shadow-lg border-0" style="width: 400px; border-radius: 1rem;">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                        <i class="bi bi-lock-fill fs-3"></i>
+                    </div>
+                    <h3 class="fw-bold">Nexus Inventory</h3>
+                    <p class="text-muted text-sm">Please sign in to continue</p>
+                </div>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary fw-semibold">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
+                            <input type="text" id="username" class="form-control bg-light border-start-0" placeholder="Username" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-secondary fw-semibold">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-key"></i></span>
+                            <input type="password" id="password" class="form-control bg-light border-start-0" placeholder="Password" required>
+                        </div>
+                    </div>
+                    <div id="loginError" class="alert alert-danger d-none py-2 text-center text-sm">Invalid credentials</div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold rounded-3">Sign In</button>
+                    <div class="text-center mt-3">
+                        <small class="text-muted">Default: admin / password</small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP LAYOUT (Hidden by default) -->
+    <div id="appContainer" class="d-none d-flex w-100">
+        
+        <!-- SIDEBAR -->
+        <nav class="sidebar d-none d-md-flex flex-column p-3">
+            <div class="d-flex align-items-center gap-2 mb-4 px-2">
+                <div class="bg-primary rounded p-1"><i class="bi bi-box-seam text-white fs-4"></i></div>
+                <h4 class="m-0 fw-bold">Nexus Inv.</h4>
+            </div>
+            
+            <ul class="nav flex-column flex-grow-1">
+                <li class="nav-item"><a href="#" class="nav-link active" onclick="Router.navigate('dashboard')"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="Router.navigate('pos')"><i class="bi bi-cart3"></i> Point of Sale</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="Router.navigate('reports')"><i class="bi bi-graph-up"></i> Reports</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="Router.navigate('inventory')"><i class="bi bi-boxes"></i> Inventory</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="Router.navigate('suppliers')"><i class="bi bi-people"></i> Suppliers</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="Router.navigate('movements')"><i class="bi bi-clock-history"></i> Movements</a></li>
+            </ul>
+
+            <div class="mt-auto pt-3 border-top border-secondary">
+                <a href="#" class="nav-link" onclick="Router.navigate('settings')"><i class="bi bi-gear"></i> Settings</a>
+                <a href="#" class="nav-link text-danger mt-1" onclick="Auth.logout()"><i class="bi bi-box-arrow-right"></i> Logout</a>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content d-flex flex-column">
+            <!-- Mobile Header -->
+            <div class="d-md-none d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-box-seam text-primary fs-3"></i>
+                    <h5 class="m-0 fw-bold">Nexus</h5>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm" onclick="Auth.logout()"><i class="bi bi-box-arrow-right"></i></button>
+            </div>
+
+            <!-- DYNAMIC CONTENT DIV -->
+            <div id="viewContent" class="flex-grow-1">
+                <!-- Views will be injected here by JS -->
+            </div>
+            
+            <!-- Mobile Bottom Nav -->
+            <div class="d-md-none fixed-bottom bg-white border-top p-2 d-flex justify-content-around">
+                <button class="btn btn-link text-secondary" onclick="Router.navigate('dashboard')"><i class="bi bi-speedometer2 fs-4"></i></button>
+                <button class="btn btn-link text-secondary" onclick="Router.navigate('pos')"><i class="bi bi-cart3 fs-4"></i></button>
+                <button class="btn btn-link text-secondary" onclick="Router.navigate('inventory')"><i class="bi bi-boxes fs-4"></i></button>
+                <button class="btn btn-link text-secondary" onclick="Router.navigate('settings')"><i class="bi bi-gear fs-4"></i></button>
+            </div>
+        </main>
+    </div>
+
+    <!-- GLOBAL MODAL (Reusable) -->
+    <div class="modal fade" id="mainModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold" id="mainModalLabel">Title</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="mainModalBody">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        /**
+         * NEXUS INVENTORY SYSTEM (Vanilla JS Implementation)
+         * - Store: Manages data and localStorage
+         * - Auth: Manages Login/Logout
+         * - Router: Manages Navigation and Rendering
+         * - Utils: Helper functions
+         */
+
+        // --- 1. DATA STORE ---
+        const Store = {
+            data: {
+                items: [],
+                suppliers: [],
+                movements: [],
+                expenses: [],
+                walletTransactions: [],
+                credentials: { username: 'admin', password: 'password' },
+                passcode: '0000'
+            },
+            
+            init() {
+                this.load('nexus_items', 'items', []);
+                this.load('nexus_suppliers', 'suppliers', []);
+                this.load('nexus_movements', 'movements', []);
+                this.load('nexus_expenses', 'expenses', []);
+                this.load('nexus_wallet', 'walletTransactions', []);
+                this.load('nexus_credentials', 'credentials', { username: 'admin', password: 'password' });
+                this.load('nexus_passcode', 'passcode', '0000');
+                
+                // Seed data if empty
+                if (this.data.items.length === 0) this.seedData();
+            },
+
+            load(key, stateKey, defaultVal) {
+                const stored = localStorage.getItem(key);
+                this.data[stateKey] = stored ? JSON.parse(stored) : defaultVal;
+            },
+
+            save(key, stateKey) {
+                localStorage.setItem(key, JSON.stringify(this.data[stateKey]));
+            },
+
+            // --- Business Logic Methods ---
+            
+            addItem(item) {
+                const id = Math.random().toString(36).substr(2, 9);
+                const newItem = { ...item, id, lastUpdated: new Date().toISOString() };
+                this.data.items.push(newItem);
+                if (item.quantity > 0) {
+                    this.addMovement({ itemId: id, type: 'IN', quantity: item.quantity, reason: 'Initial Entry' });
+                }
+                this.save('nexus_items', 'items');
+            },
+
+            updateItem(id, updates) {
+                const idx = this.data.items.findIndex(i => i.id === id);
+                if (idx !== -1) {
+                    this.data.items[idx] = { ...this.data.items[idx], ...updates, lastUpdated: new Date().toISOString() };
+                    this.save('nexus_items', 'items');
+                }
+            },
+
+            deleteItem(id) {
+                this.data.items = this.data.items.filter(i => i.id !== id);
+                this.save('nexus_items', 'items');
+            },
+
+            addMovement(movement) {
+                const newMovement = { 
+                    ...movement, 
+                    id: Math.random().toString(36).substr(2, 9), 
+                    date: new Date().toISOString() 
+                };
+                this.data.movements.unshift(newMovement);
+                this.save('nexus_movements', 'movements');
+
+                // Update Item Stock
+                const item = this.data.items.find(i => i.id === movement.itemId);
+                if (item) {
+                    let newQty = item.quantity;
+                    if (movement.type === 'IN') newQty += movement.quantity;
+                    else if (movement.type === 'OUT') newQty = Math.max(0, newQty - movement.quantity);
+                    else if (movement.type === 'ADJUSTMENT') newQty = movement.quantity;
+                    
+                    this.updateItem(item.id, { quantity: newQty });
+                }
+            },
+
+            addWalletTransaction(amount, type, reason) {
+                const tx = { id: Math.random().toString(36).substr(2, 9), date: new Date().toISOString(), amount, type, reason };
+                this.data.walletTransactions.unshift(tx);
+                this.save('nexus_wallet', 'walletTransactions');
+            },
+            
+            getWalletBalance() {
+                return this.data.walletTransactions.reduce((acc, tx) => {
+                    return (tx.type === 'DEPOSIT' || tx.type === 'SALE') ? acc + tx.amount : acc - tx.amount;
+                }, 0);
+            },
+
+            seedData() {
+                // Initial Seed similar to React version
+                const supId = 'sup_1';
+                this.data.suppliers = [{ id: supId, name: 'TechDistro', contactPerson: 'John', email: 'sales@tech.com', phone: '123', address: 'City', status: 'Active' }];
+                this.data.items = [
+                    { id: 'i1', sku: 'M-100', name: 'Wireless Mouse', category: 'Electronics', quantity: 50, costUnit: 'pcs', minStockLevel: 10, unitCost: 150, wholesalePrice: 200, retailPrice: 450, movementSpeed: 'Fast', supplierId: supId, location: 'A1', description: 'Good mouse' }
+                ];
+                this.data.walletTransactions = [{ id: 'w1', type: 'DEPOSIT', amount: 10000, date: new Date().toISOString(), reason: 'Initial Capital' }];
+                this.save('nexus_items', 'items');
+                this.save('nexus_suppliers', 'suppliers');
+                this.save('nexus_wallet', 'walletTransactions');
+            }
+        };
+
+        // --- 2. AUTHENTICATION ---
+        const Auth = {
+            login(u, p) {
+                if (u === Store.data.credentials.username && p === Store.data.credentials.password) {
+                    document.getElementById('loginScreen').classList.add('d-none');
+                    document.getElementById('appContainer').classList.remove('d-none');
+                    Router.navigate('dashboard');
+                    return true;
+                }
+                return false;
+            },
+            logout() {
+                document.getElementById('appContainer').classList.add('d-none');
+                document.getElementById('loginScreen').classList.remove('d-none');
+                document.getElementById('loginForm').reset();
+            }
+        };
+
+        // --- 3. ROUTER & VIEWS ---
+        const Router = {
+            currentView: 'dashboard',
+            
+            navigate(view) {
+                this.currentView = view;
+                // Update Sidebar Active State
+                document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
+                const activeLink = document.querySelector(`.sidebar .nav-link[onclick*="${view}"]`);
+                if(activeLink) activeLink.classList.add('active');
+
+                // Update Mobile Bottom Nav Active State
+                document.querySelectorAll('.fixed-bottom .btn').forEach(l => l.classList.remove('text-primary'));
+                const mobileLink = document.querySelector(`.fixed-bottom .btn[onclick*="${view}"]`);
+                if(mobileLink) mobileLink.classList.add('text-primary');
+
+                const container = document.getElementById('viewContent');
+                container.innerHTML = ''; // Clear current view
+
+                // Render View
+                switch(view) {
+                    case 'dashboard': this.renderDashboard(container); break;
+                    case 'inventory': this.renderInventory(container); break;
+                    case 'pos': this.renderPOS(container); break;
+                    case 'reports': this.renderReports(container); break;
+                    case 'suppliers': this.renderSuppliers(container); break;
+                    case 'movements': this.renderMovements(container); break;
+                    case 'settings': this.renderSettings(container); break;
+                }
+            },
+
+            // --- VIEW RENDERERS ---
+
+            renderDashboard(container) {
+                const totalItems = Store.data.items.length;
+                // Calculate value based on Unit Cost
+                const totalValue = Store.data.items.reduce((sum, i) => sum + (i.quantity * (i.unitCost || i.wholesalePrice)), 0);
+                const lowStock = Store.data.items.filter(i => i.quantity <= i.minStockLevel).length;
+
+                container.innerHTML = `
+                    <h2 class="fw-bold mb-4">Dashboard</h2>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="text-secondary small fw-bold text-uppercase">Total Inventory</div>
+                                        <div class="fs-2 fw-bold text-primary">₱${totalValue.toLocaleString(undefined, {minimumFractionDigits:2})}</div>
+                                    </div>
+                                    <div class="card-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-currency-dollar"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="text-secondary small fw-bold text-uppercase">Products</div>
+                                        <div class="fs-2 fw-bold text-dark">${totalItems}</div>
+                                    </div>
+                                    <div class="card-icon bg-success bg-opacity-10 text-success"><i class="bi bi-box-seam"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="text-secondary small fw-bold text-uppercase">Low Stock Alerts</div>
+                                        <div class="fs-2 fw-bold ${lowStock > 0 ? 'text-danger' : 'text-success'}">${lowStock}</div>
+                                    </div>
+                                    <div class="card-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-exclamation-triangle"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-bottom-0 pt-3">
+                                    <h5 class="fw-bold m-0">Recent Activity</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <ul class="list-group list-group-flush">
+                                        ${Store.data.movements.slice(0,5).map(m => {
+                                            const item = Store.data.items.find(i => i.id === m.itemId);
+                                            return `<li class="list-group-item d-flex justify-content-between align-items-center px-3 py-3">
+                                                <div>
+                                                    <span class="badge ${m.type === 'IN' ? 'bg-success' : 'bg-danger'} me-2">${m.type}</span>
+                                                    <span class="fw-medium">${item ? item.name : 'Unknown'}</span>
+                                                    <div class="text-muted small">${m.reason}</div>
+                                                </div>
+                                                <span class="fw-bold">${m.quantity}</span>
+                                            </li>`;
+                                        }).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                         <div class="col-lg-6">
+                            <div class="card border-0 shadow-sm h-100 bg-primary bg-gradient text-white">
+                                <div class="card-body p-4">
+                                    <h5><i class="bi bi-stars"></i> AI Insights (Mock)</h5>
+                                    <p class="mt-3">Your inventory turnover is stable. Item <strong>Wireless Mouse</strong> is your best seller this week. Consider restocking soon.</p>
+                                    <button class="btn btn-light text-primary btn-sm mt-2 fw-bold">Full Analysis</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderInventory(container) {
+                container.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="fw-bold m-0">Inventory</h2>
+                        <button class="btn btn-primary" onclick="Modals.openItemModal()"><i class="bi bi-plus-lg"></i> Add Item</button>
+                    </div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-light text-secondary">
+                                        <tr>
+                                            <th class="ps-4">Item</th>
+                                            <th>Category</th>
+                                            <th>Stock</th>
+                                            <th class="text-end">Unit Cost</th>
+                                            <th class="text-end">Wholesale</th>
+                                            <th class="text-end">Retail</th>
+                                            <th class="text-end pe-4">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${Store.data.items.map(item => `
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="fw-bold text-dark">${item.name}</div>
+                                                    <div class="small text-muted">${item.sku}</div>
+                                                </td>
+                                                <td><span class="badge bg-light text-dark border">${item.category}</span></td>
+                                                <td>
+                                                    <span class="fw-bold ${item.quantity <= item.minStockLevel ? 'text-danger' : ''}">${item.quantity}</span> 
+                                                    <small class="text-muted">${item.costUnit}</small>
+                                                </td>
+                                                <td class="text-end text-secondary">₱${(item.unitCost || 0).toFixed(2)}</td>
+                                                <td class="text-end text-primary">₱${item.wholesalePrice.toFixed(2)}</td>
+                                                <td class="text-end text-success">₱${item.retailPrice.toFixed(2)}</td>
+                                                <td class="text-end pe-4">
+                                                    <button class="btn btn-sm btn-light text-primary" onclick="Modals.openItemModal('${item.id}')"><i class="bi bi-pencil"></i></button>
+                                                    <button class="btn btn-sm btn-light text-danger" onclick="Actions.deleteItem('${item.id}')"><i class="bi bi-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                        ${Store.data.items.length === 0 ? '<tr><td colspan="7" class="text-center py-5 text-muted">No items found</td></tr>' : ''}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderPOS(container) {
+                // Initialize Cart state if not exists globally for session
+                if(!window.posCart) window.posCart = [];
+                
+                // We render the structure, then populate the products and cart
+                container.innerHTML = `
+                   <div class="row h-100 g-0">
+                       <!-- Product Grid -->
+                       <div class="col-lg-8 pe-lg-4 d-flex flex-column h-100 overflow-hidden">
+                           <div class="mb-3">
+                               <input type="text" id="posSearch" class="form-control form-control-lg" placeholder="Search products..." onkeyup="Router.filterPosItems()">
+                           </div>
+                           <div id="posGrid" class="row g-3 overflow-y-auto pb-4 align-content-start" style="height:100%;">
+                                <!-- Items injected here -->
+                           </div>
+                       </div>
+                       <!-- Cart -->
+                       <div class="col-lg-4 d-flex flex-column h-100 bg-white border rounded shadow-sm overflow-hidden">
+                            <div class="p-3 bg-light border-bottom fw-bold d-flex justify-content-between">
+                                <span>Current Order</span>
+                                <span class="badge bg-primary rounded-pill" id="cartCount">0</span>
+                            </div>
+                            <div id="posCartList" class="flex-grow-1 overflow-y-auto p-3">
+                                <!-- Cart items -->
+                            </div>
+                            <div class="p-3 bg-light border-top">
+                                <div class="d-flex justify-content-between mb-2 fs-5 fw-bold">
+                                    <span>Total</span>
+                                    <span id="cartTotal">₱0.00</span>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">₱</span>
+                                    <input type="number" id="posCash" class="form-control" placeholder="Cash Received">
+                                </div>
+                                <button class="btn btn-primary w-100 py-2 fw-bold" onclick="Actions.checkoutPOS()">Complete Sale</button>
+                            </div>
+                       </div>
+                   </div>
+                `;
+                this.filterPosItems(); // Initial render of items
+                this.updatePosCartUI();
+            },
+
+            filterPosItems() {
+                const term = document.getElementById('posSearch')?.value.toLowerCase() || '';
+                const grid = document.getElementById('posGrid');
+                if(!grid) return;
+
+                const items = Store.data.items.filter(i => 
+                    (i.name.toLowerCase().includes(term) || i.sku.toLowerCase().includes(term)) && i.quantity > 0
+                );
+
+                grid.innerHTML = items.map(item => `
+                    <div class="col-md-4 col-sm-6">
+                        <div class="card pos-product-card" onclick="Actions.addToCart('${item.id}')">
+                            <div class="card-body">
+                                <h6 class="card-title text-truncate fw-bold mb-1">${item.name}</h6>
+                                <p class="card-text text-muted small mb-2">${item.sku}</p>
+                                <div class="d-flex justify-content-between align-items-end mt-2">
+                                    <span class="text-primary fw-bold">₱${item.retailPrice}</span>
+                                    <span class="badge bg-light text-secondary border">${item.quantity}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                if(items.length === 0) grid.innerHTML = '<div class="col-12 text-center text-muted mt-5">No products found</div>';
+            },
+
+            updatePosCartUI() {
+                const list = document.getElementById('posCartList');
+                const countEl = document.getElementById('cartCount');
+                const totalEl = document.getElementById('cartTotal');
+                if(!list) return;
+
+                let total = 0;
+                let count = 0;
+
+                list.innerHTML = window.posCart.map(item => {
+                    const price = item.priceType === 'retail' ? item.retailPrice : item.wholesalePrice;
+                    const lineTotal = price * item.cartQty;
+                    total += lineTotal;
+                    count += item.cartQty;
+
+                    return `
+                        <div class="cart-item">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-medium text-truncate" style="max-width: 150px;">${item.name}</span>
+                                <span class="fw-bold">₱${lineTotal.toFixed(2)}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button class="btn btn-xs btn-outline-secondary py-0 px-1" onclick="Actions.togglePrice('${item.id}')">${item.priceType === 'retail' ? 'RET' : 'WS'}</button>
+                                <div class="input-group input-group-sm" style="width: 90px;">
+                                    <button class="btn btn-outline-secondary" onclick="Actions.updateCart('${item.id}', -1)">-</button>
+                                    <input type="text" class="form-control text-center px-0" value="${item.cartQty}" readonly>
+                                    <button class="btn btn-outline-secondary" onclick="Actions.updateCart('${item.id}', 1)">+</button>
+                                </div>
+                                <button class="btn btn-link text-danger p-0" onclick="Actions.removeFromCart('${item.id}')"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                if(window.posCart.length === 0) list.innerHTML = '<div class="text-center text-muted mt-5"><i class="bi bi-cart fs-1"></i><p>Cart is empty</p></div>';
+
+                countEl.innerText = count;
+                totalEl.innerText = '₱' + total.toFixed(2);
+            },
+
+            renderReports(container) {
+                // Wallet Balance
+                const balance = Store.getWalletBalance();
+                // Simple report stats logic for display
+                const salesMoves = Store.data.movements.filter(m => m.type === 'OUT' && m.reason.includes('POS'));
+                const revenue = salesMoves.reduce((acc, m) => {
+                     const item = Store.data.items.find(i => i.id === m.itemId);
+                     return acc + (m.quantity * (item ? item.retailPrice : 0));
+                }, 0);
+
+                container.innerHTML = `
+                    <h2 class="fw-bold mb-4">Reports & Finance</h2>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-dark text-white h-100">
+                                <div class="card-body p-4">
+                                    <h6 class="text-white-50 text-uppercase">Wallet Balance (Cash on Hand)</h6>
+                                    <h1 class="display-5 fw-bold mb-3">₱${balance.toLocaleString(undefined, {minimumFractionDigits:2})}</h1>
+                                    <button class="btn btn-outline-light btn-sm" onclick="Modals.openWalletModal()">Withdraw / Deposit</button>
+                                </div>
+                            </div>
+                        </div>
+                         <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body p-4">
+                                    <h6 class="text-secondary text-uppercase">Total Sales Revenue</h6>
+                                    <h2 class="fw-bold text-primary mb-3">₱${revenue.toLocaleString(undefined, {minimumFractionDigits:2})}</h2>
+                                    <p class="text-muted small">Based on POS movement history</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                         <div class="card-header bg-white fw-bold">Wallet Transaction History</div>
+                         <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead class="bg-light"><tr><th class="ps-3">Date</th><th>Type</th><th>Reason</th><th class="text-end pe-3">Amount</th></tr></thead>
+                                    <tbody>
+                                        ${Store.data.walletTransactions.map(tx => `
+                                            <tr>
+                                                <td class="ps-3">${new Date(tx.date).toLocaleDateString()}</td>
+                                                <td><span class="badge ${tx.type==='DEPOSIT'||tx.type==='SALE'?'bg-success':'bg-danger'}">${tx.type}</span></td>
+                                                <td>${tx.reason}</td>
+                                                <td class="text-end pe-3 fw-bold">₱${tx.amount.toLocaleString()}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                         </div>
+                    </div>
+                `;
+            },
+
+            renderMovements(container) {
+                container.innerHTML = `
+                    <h2 class="fw-bold mb-4">Stock Movements</h2>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-0">
+                            <table class="table table-hover mb-0">
+                                <thead class="bg-light">
+                                    <tr><th class="ps-4">Date</th><th>Type</th><th>Item</th><th>Qty</th><th>Reason</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${Store.data.movements.map(m => {
+                                        const item = Store.data.items.find(i => i.id === m.itemId);
+                                        return `<tr>
+                                            <td class="ps-4">${new Date(m.date).toLocaleDateString()}</td>
+                                            <td><span class="badge ${m.type === 'IN' ? 'bg-success' : m.type === 'OUT' ? 'bg-danger' : 'bg-warning'}">${m.type}</span></td>
+                                            <td>${item ? item.name : 'Deleted Item'}</td>
+                                            <td>${m.quantity}</td>
+                                            <td class="text-muted">${m.reason}</td>
+                                        </tr>`
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderSuppliers(container) {
+                 container.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="fw-bold m-0">Suppliers</h2>
+                        <button class="btn btn-primary" onclick="Modals.openSupplierModal()"><i class="bi bi-plus-lg"></i> Add Supplier</button>
+                    </div>
+                    <div class="row g-4">
+                        ${Store.data.suppliers.map(s => `
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center gap-3 mb-3">
+                                            <div class="bg-primary bg-opacity-10 text-primary p-3 rounded"><i class="bi bi-building"></i></div>
+                                            <div>
+                                                <h5 class="fw-bold m-0">${s.name}</h5>
+                                                <small class="text-muted">${s.contactPerson}</small>
+                                            </div>
+                                        </div>
+                                        <ul class="list-unstyled small text-secondary mb-3">
+                                            <li class="mb-1"><i class="bi bi-envelope me-2"></i> ${s.email}</li>
+                                            <li><i class="bi bi-telephone me-2"></i> ${s.phone}</li>
+                                        </ul>
+                                        <span class="badge ${s.status === 'Active' ? 'bg-success' : 'bg-secondary'}">${s.status}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${Store.data.suppliers.length === 0 ? '<div class="col-12 text-center text-muted">No suppliers</div>' : ''}
+                    </div>
+                `;
+            },
+
+            renderSettings(container) {
+                container.innerHTML = `
+                    <h2 class="fw-bold mb-4">Settings</h2>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card border-primary border-opacity-25 bg-primary bg-opacity-10 h-100">
+                                <div class="card-body">
+                                    <h5 class="text-primary fw-bold"><i class="bi bi-download"></i> Backup Data</h5>
+                                    <p class="small text-muted">Export all data to JSON (Credentials excluded).</p>
+                                    <button class="btn btn-primary btn-sm" onclick="Actions.exportData()">Export JSON</button>
+                                </div>
+                            </div>
+                        </div>
+                         <div class="col-md-6">
+                            <div class="card border-danger border-opacity-25 bg-danger bg-opacity-10 h-100">
+                                <div class="card-body">
+                                    <h5 class="text-danger fw-bold"><i class="bi bi-exclamation-triangle"></i> Danger Zone</h5>
+                                    <p class="small text-muted">Clear all system data irreversibly.</p>
+                                    <button class="btn btn-danger btn-sm" onclick="Actions.factoryReset()">Factory Reset</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // --- 4. ACTIONS & MODAL HELPERS ---
+        const Actions = {
+            deleteItem(id) {
+                if(confirm('Delete this item?')) {
+                    Store.deleteItem(id);
+                    Router.navigate('inventory'); // refresh
+                }
+            },
+            
+            // POS Logic
+            addToCart(itemId) {
+                const item = Store.data.items.find(i => i.id === itemId);
+                if(!item) return;
+                
+                const existing = window.posCart.find(i => i.id === itemId);
+                if(existing) {
+                    if(existing.cartQty < item.quantity) existing.cartQty++;
+                } else {
+                    window.posCart.push({...item, cartQty: 1, priceType: 'retail'});
+                }
+                Router.updatePosCartUI();
+            },
+            
+            removeFromCart(itemId) {
+                window.posCart = window.posCart.filter(i => i.id !== itemId);
+                Router.updatePosCartUI();
+            },
+            
+            updateCart(itemId, delta) {
+                const item = window.posCart.find(i => i.id === itemId);
+                if(item) {
+                    const newQty = item.cartQty + delta;
+                    if(newQty > 0 && newQty <= item.quantity) item.cartQty = newQty;
+                }
+                Router.updatePosCartUI();
+            },
+            
+            togglePrice(itemId) {
+                const item = window.posCart.find(i => i.id === itemId);
+                if(item) item.priceType = item.priceType === 'retail' ? 'wholesale' : 'retail';
+                Router.updatePosCartUI();
+            },
+
+            checkoutPOS() {
+                const totalText = document.getElementById('cartTotal').innerText.replace('₱','');
+                const total = parseFloat(totalText);
+                const cash = parseFloat(document.getElementById('posCash').value);
+                
+                if(!cash || cash < total) {
+                    alert("Insufficient cash.");
+                    return;
+                }
+
+                // Process
+                window.posCart.forEach(c => {
+                    Store.addMovement({ itemId: c.id, type: 'OUT', quantity: c.cartQty, reason: `POS Sale - ${c.priceType}` });
+                });
+                Store.addWalletTransaction(total, 'SALE', `POS Sale (${window.posCart.length} items)`);
+                
+                alert(`Sale Complete!\nChange: ₱${(cash - total).toFixed(2)}`);
+                window.posCart = [];
+                Router.renderPOS(document.getElementById('viewContent')); // Refresh view
+            },
+
+            exportData() {
+                const exportObj = { ...Store.data };
+                delete exportObj.credentials; // Security: Remove creds
+                delete exportObj.passcode;
+                
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+                const node = document.createElement('a');
+                node.setAttribute("href", dataStr);
+                node.setAttribute("download", "nexus_backup.json");
+                document.body.appendChild(node);
+                node.click();
+                node.remove();
+            },
+
+            factoryReset() {
+                if(confirm("Are you sure? This will wipe all data!")) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            }
+        };
+
+        const Modals = {
+            bsModal: null,
+
+            open(title, bodyHtml) {
+                const modalEl = document.getElementById('mainModal');
+                document.getElementById('mainModalLabel').innerText = title;
+                document.getElementById('mainModalBody').innerHTML = bodyHtml;
+                this.bsModal = new bootstrap.Modal(modalEl);
+                this.bsModal.show();
+            },
+
+            close() {
+                if(this.bsModal) this.bsModal.hide();
+            },
+
+            openItemModal(itemId = null) {
+                const item = itemId ? Store.data.items.find(i => i.id === itemId) : {};
+                const isEdit = !!itemId;
+                
+                const formHtml = `
+                    <form onsubmit="Modals.submitItemForm(event, '${itemId || ''}')">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Name</label>
+                                <input type="text" name="name" class="form-control" value="${item.name || ''}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">SKU</label>
+                                <input type="text" name="sku" class="form-control" value="${item.sku || ''}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Category</label>
+                                <input type="text" name="category" class="form-control" value="${item.category || ''}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" name="quantity" class="form-control" value="${item.quantity || 0}" ${isEdit ? 'disabled' : ''}>
+                            </div>
+
+                             <!-- Buying Info -->
+                            <div class="col-12 p-3 bg-light border rounded">
+                                <h6 class="fw-bold mb-3">Buying Information</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Unit Cost (Buying)</label>
+                                        <input type="number" step="0.01" name="unitCost" class="form-control" value="${item.unitCost || ''}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Cost Unit</label>
+                                        <input type="text" name="costUnit" class="form-control" value="${item.costUnit || 'pcs'}">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Selling Info -->
+                            <div class="col-md-6">
+                                <label class="form-label">Wholesale Price</label>
+                                <input type="number" step="0.01" name="wholesalePrice" class="form-control" value="${item.wholesalePrice || ''}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Retail Price</label>
+                                <input type="number" step="0.01" name="retailPrice" class="form-control" value="${item.retailPrice || ''}">
+                            </div>
+                        </div>
+                        <div class="mt-4 text-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Create'}</button>
+                        </div>
+                    </form>
+                `;
+                this.open(isEdit ? 'Edit Item' : 'Add New Item', formHtml);
+            },
+
+            submitItemForm(e, id) {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                const data = Object.fromEntries(fd.entries());
+                
+                // Convert numbers
+                data.quantity = parseInt(data.quantity);
+                data.unitCost = parseFloat(data.unitCost);
+                data.wholesalePrice = parseFloat(data.wholesalePrice);
+                data.retailPrice = parseFloat(data.retailPrice);
+                data.minStockLevel = 5; // Default
+
+                if (id) Store.updateItem(id, data);
+                else Store.addItem(data);
+
+                this.close();
+                Router.navigate('inventory');
+            },
+
+            openWalletModal() {
+                 const html = `
+                    <form onsubmit="Modals.submitWalletForm(event)">
+                        <div class="mb-3">
+                            <label class="form-label">Action</label>
+                            <select name="type" class="form-select">
+                                <option value="WITHDRAWAL">Withdraw</option>
+                                <option value="DEPOSIT">Deposit</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Amount</label>
+                            <input type="number" name="amount" class="form-control" required step="0.01">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Reason</label>
+                            <input type="text" name="reason" class="form-control" required>
+                        </div>
+                        <button class="btn btn-primary w-100">Submit</button>
+                    </form>
+                 `;
+                 this.open('Wallet Transaction', html);
+            },
+
+            submitWalletForm(e) {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                Store.addWalletTransaction(parseFloat(fd.get('amount')), fd.get('type'), fd.get('reason'));
+                this.close();
+                Router.navigate('reports');
+            },
+            
+            openSupplierModal() {
+                // Simplified for brevity
+                const html = `
+                    <form onsubmit="Modals.submitSupplier(event)">
+                        <input type="text" name="name" class="form-control mb-2" placeholder="Company Name" required>
+                        <input type="text" name="contact" class="form-control mb-2" placeholder="Contact Person">
+                        <input type="email" name="email" class="form-control mb-2" placeholder="Email">
+                        <button class="btn btn-primary w-100">Add Supplier</button>
+                    </form>
+                `;
+                this.open('Add Supplier', html);
+            },
+            
+            submitSupplier(e) {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                Store.data.suppliers.push({
+                    id: Math.random().toString(36),
+                    name: fd.get('name'),
+                    contactPerson: fd.get('contact'),
+                    email: fd.get('email'),
+                    status: 'Active'
+                });
+                Store.save('nexus_suppliers', 'suppliers');
+                this.close();
+                Router.navigate('suppliers');
+            }
+        };
+
+        // --- INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            Store.init();
+            
+            // Login Handler
+            document.getElementById('loginForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const u = document.getElementById('username').value;
+                const p = document.getElementById('password').value;
+                if (!Auth.login(u, p)) {
+                    document.getElementById('loginError').classList.remove('d-none');
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>

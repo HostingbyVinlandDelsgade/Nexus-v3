@@ -1,0 +1,696 @@
+import React, { useState, useEffect } from 'react';
+import { InventoryItem, MovementType } from '../../types';
+import { useInventory } from '../../contexts/InventoryContext';
+import { Search, Loader2, Sparkles, Save, History, Box, ArrowRightLeft, Settings, Plus, Trash2, ChevronLeft, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import SupplierSelectionModal from '../Suppliers/SupplierSelectionModal';
+import { generateItemDescription } from '../../services/geminiService';
+
+interface ItemFormProps {
+  initialData?: InventoryItem;
+  onClose: () => void;
+}
+
+// Helper to safely convert string input to number or undefined
+const toNumber = (val: string): number => {
+  if (val === '') return 0;
+  const num = parseFloat(val);
+  return isNaN(num) ? 0 : num;
+};
+
+// Helper to convert Google Drive viewer links to direct image links
+const processImageUrl = (url: string) => {
+    if (!url) return '';
+    // Handle Google Drive Links
+    // Ex: https://drive.google.com/file/d/14zOncXzjQ8SrBj_UCzPK9srJOKqsf4bp/view?usp=drivesdk
+    if (url.includes('drive.google.com') && url.includes('/d/')) {
+        const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (idMatch && idMatch[1]) {
+            // Use the thumbnail API which is reliable for embedding high-res images
+            return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
+        }
+    }
+    return url;
+};
+
+const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
+  const { addItem, updateItem, getSupplierName, addMovement, movements, categories, addCategory, deleteCategory } = useInventory();
+  
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'details' | 'stock'>('details');
+  const [isManagingCategories, setIsManagingCategories] = useState(false);
+  
+  // Local state for form fields
+  const [sku, setSku] = useState('');
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState('');
+  const [costUnit, setCostUnit] = useState('pcs');
+  const [quantity, setQuantity] = useState('');
+  const [minStockLevel, setMinStockLevel] = useState('');
+  const [unitCost, setUnitCost] = useState('');
+  const [wholesalePrice, setWholesalePrice] = useState('');
+  const [retailPrice, setRetailPrice] = useState('');
+  const [movementSpeed, setMovementSpeed] = useState<'Fast' | 'Normal' | 'Slow'>('Normal');
+  const [supplierId, setSupplierId] = useState('');
+  const [location, setLocation] = useState('');
+  const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+
+  // Stock Adjustment State
+  const [adjType, setAdjType] = useState<MovementType>(MovementType.IN);
+  const [adjQuantity, setAdjQuantity] = useState('');
+  const [adjReason, setAdjReason] = useState('');
+
+  // Category Management Input
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+
+  // Initialize form data
+  useEffect(() => {
+    if (initialData) {
+      setSku(initialData.sku);
+      setName(initialData.name);
+      setCategory(initialData.category);
+      setCostUnit(initialData.costUnit || 'pcs');
+      setQuantity(initialData.quantity.toString());
+      setMinStockLevel(initialData.minStockLevel.toString());
+      setUnitCost(initialData.unitCost?.toString() || '0');
+      setWholesalePrice(initialData.wholesalePrice.toString());
+      setRetailPrice(initialData.retailPrice.toString());
+      setMovementSpeed(initialData.movementSpeed);
+      setSupplierId(initialData.supplierId);
+      setLocation(initialData.location);
+      setDescription(initialData.description);
+      // Auto-fix existing Google Drive links on load
+      setImageUrl(processImageUrl(initialData.imageUrl || ''));
+    } else {
+      // Defaults for new item
+      setQuantity('0');
+      setMinStockLevel('5');
+      setCostUnit('pcs');
+      if (categories.length > 0) setCategory(categories[0]);
+    }
+  }, [initialData, categories]);
+
+  // Ensure category is valid if categories change
+  useEffect(() => {
+    if (categories.length > 0 && !categories.includes(category)) {
+        setCategory(categories[0]);
+    }
+  }, [categories, category]);
+
+  // Handle Main Form Submit
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !sku || !supplierId) {
+      alert("Please fill in all required fields (Name, SKU, Supplier)");
+      return;
+    }
+
+    const itemData = {
+      sku,
+      name,
+      category: category || 'General',
+      costUnit,
+      quantity: toNumber(quantity),
+      minStockLevel: toNumber(minStockLevel),
+      unitCost: toNumber(unitCost),
+      wholesalePrice: toNumber(wholesalePrice),
+      retailPrice: toNumber(retailPrice),
+      movementSpeed,
+      supplierId,
+      location,
+      description,
+      imageUrl,
+    };
+
+    if (initialData && initialData.id) {
+      updateItem(initialData.id, itemData);
+    } else {
+      addItem(itemData);
+    }
+    onClose();
+  };
+
+  const handleImageInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const processedUrl = processImageUrl(e.target.value);
+    setImageUrl(processedUrl);
+  };
+
+  // Handle Stock Adjustment Submit
+  const handleStockAdjustment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!initialData?.id) return;
+    
+    const qty = toNumber(adjQuantity);
+    if (qty <= 0) {
+        alert("Quantity must be greater than 0");
+        return;
+    }
+
+    addMovement({
+        itemId: initialData.id,
+        type: adjType,
+        quantity: qty,
+        reason: adjReason || 'Manual Adjustment'
+    });
+
+    // Reset Adjustment Form
+    setAdjQuantity('');
+    setAdjReason('');
+    alert("Stock updated successfully!");
+    onClose(); 
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!name) return;
+    setIsGeneratingDesc(true);
+    const desc = await generateItemDescription(name, category);
+    setDescription(desc);
+    setIsGeneratingDesc(false);
+  };
+
+  const handleAddCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newCategoryName.trim()) {
+        addCategory(newCategoryName.trim());
+        setNewCategoryName('');
+    }
+  };
+
+  // Filter movements for this item
+  const itemMovements = initialData ? movements.filter(m => m.itemId === initialData.id) : [];
+
+  // --- RENDER: Category Management View ---
+  if (isManagingCategories) {
+      return (
+          <div className="flex flex-col h-[500px]">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                  <button onClick={() => setIsManagingCategories(false)} className="p-1 hover:bg-gray-100 rounded-full">
+                      <ChevronLeft size={20} />
+                  </button>
+                  <h3 className="font-bold text-lg text-gray-800">Manage Categories</h3>
+              </div>
+              
+              <div className="flex gap-2 mb-6">
+                  <input 
+                    type="text" 
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="New Category Name"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                    autoFocus
+                  />
+                  <button 
+                    onClick={handleAddCategory}
+                    disabled={!newCategoryName.trim()}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                      <Plus size={18} /> Add
+                  </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto">
+                  <div className="space-y-2">
+                      {categories.map(cat => (
+                          <div key={cat} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100 group">
+                              <span className="font-medium text-gray-700">{cat}</span>
+                              <button 
+                                onClick={() => { if(confirm(`Delete category "${cat}"?`)) deleteCategory(cat); }}
+                                className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                              >
+                                  <Trash2 size={16} />
+                              </button>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      );
+  }
+
+  // --- RENDER: Main Item Form ---
+  return (
+    <div className="flex flex-col h-[600px]">
+      {/* Tabs Navigation */}
+      <div className="flex border-b border-gray-100 mb-6">
+        <button
+          type="button"
+          onClick={() => setActiveTab('details')}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
+            activeTab === 'details' 
+              ? 'border-indigo-600 text-indigo-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Box size={18} />
+          Item Details
+        </button>
+        <button
+          type="button"
+          disabled={!initialData}
+          onClick={() => setActiveTab('stock')}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
+            !initialData ? 'opacity-50 cursor-not-allowed' : ''
+          } ${
+            activeTab === 'stock'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <History size={18} />
+          Stock Management
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pr-2">
+        {/* DETAILS TAB */}
+        {activeTab === 'details' && (
+            <form id="item-form" onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Image URL */}
+                <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Product Image URL</label>
+                    <div className="flex gap-4 items-start">
+                        <div className="flex-1">
+                            <input
+                                type="url"
+                                value={imageUrl}
+                                onChange={handleImageInput}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="Paste Google Drive or Image Link..."
+                            />
+                            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                               <ExternalLink size={10} /> Supports Google Drive links (Ensure "Anyone with the link" is ON)
+                            </p>
+                        </div>
+                        <div className="w-20 h-20 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                            {imageUrl ? (
+                                <img 
+                                    src={imageUrl} 
+                                    alt="Preview" 
+                                    className="w-full h-full object-cover" 
+                                    onError={(e) => {
+                                        // Fallback if image fails to load
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.parentElement?.classList.add('bg-red-50');
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-gray-300"><ImageIcon size={24}/></span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Name */}
+                <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
+                <input
+                    required
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="e.g. Wireless Mouse"
+                />
+                </div>
+
+                {/* SKU */}
+                <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">SKU *</label>
+                <input
+                    required
+                    type="text"
+                    value={sku}
+                    onChange={e => setSku(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="e.g. WM-001"
+                />
+                </div>
+
+                {/* Category with Manage Button */}
+                <div>
+                    <div className="flex justify-between items-center mb-1">
+                        <label className="block text-sm font-medium text-gray-700">Category</label>
+                        <button 
+                            type="button"
+                            onClick={() => setIsManagingCategories(true)}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                        >
+                            <Settings size={12} /> Manage
+                        </button>
+                    </div>
+                    <select
+                        value={category}
+                        onChange={e => setCategory(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    >
+                        {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Supplier Selection */}
+                <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Supplier *</label>
+                <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <div className={`w-full px-4 py-2 border rounded-lg flex items-center justify-between bg-gray-50 ${!supplierId ? 'text-gray-400' : 'text-gray-900'}`}>
+                            <span>
+                                {supplierId 
+                                    ? getSupplierName(supplierId) 
+                                    : 'No supplier selected'}
+                            </span>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setIsSupplierModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                    >
+                        <Search size={18} />
+                        <span>Find</span>
+                    </button>
+                </div>
+                </div>
+
+                {/* BUYING SECTION */}
+                <div className="col-span-2 grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                     <h3 className="col-span-2 text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-1 flex items-center gap-2">
+                        Buying Information
+                     </h3>
+                     
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Unit Cost (Buying Price)</label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-sans">₱</span>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={unitCost}
+                                onChange={e => setUnitCost(e.target.value)}
+                                className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="0.00"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Unit Type</label>
+                        <select
+                            value={costUnit}
+                            onChange={e => setCostUnit(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                        >
+                            <option value="pcs">pcs</option>
+                            <option value="box">box</option>
+                            <option value="sack">sack</option>
+                            <option value="kg">kg</option>
+                            <option value="pack">pack</option>
+                            <option value="roll">roll</option>
+                            <option value="unit">unit</option>
+                            <option value="set">set</option>
+                            <option value="pair">pair</option>
+                            <option value="bundle">bundle</option>
+                            <option value="can">can</option>
+                            <option value="bottle">bottle</option>
+                            <option value="liter">liter</option>
+                            <option value="meter">meter</option>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">Select the unit measure (e.g. sack, box)</p>
+                    </div>
+                </div>
+
+                {/* SELLING SECTION */}
+                <div className="col-span-2 grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Retail Price (Selling)</label>
+                        <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-sans">₱</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={retailPrice}
+                                    onChange={e => setRetailPrice(e.target.value)}
+                                    className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    placeholder="0.00"
+                                />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Wholesale Price (Selling)</label>
+                        <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-sans">₱</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={wholesalePrice}
+                                    onChange={e => setWholesalePrice(e.target.value)}
+                                    className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    placeholder="0.00"
+                                />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Min Stock */}
+                 <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Min. Stock Level</label>
+                        <input
+                            type="number"
+                            min="0"
+                            value={minStockLevel}
+                            onChange={e => setMinStockLevel(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                </div>
+                
+                {/* Quantity */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Quantity 
+                        {initialData && <span className="text-xs font-normal text-gray-500 ml-2">(Use 'Stock Management' to adjust)</span>}
+                    </label>
+                    <input
+                        type="number"
+                        min="0"
+                        value={quantity}
+                        onChange={e => setQuantity(e.target.value)}
+                        disabled={!!initialData}
+                        className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                    />
+                </div>
+
+                 {/* Movement Speed */}
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Movement Speed</label>
+                    <select
+                        value={movementSpeed}
+                        onChange={e => setMovementSpeed(e.target.value as any)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    >
+                        <option value="Fast">Fast Moving</option>
+                        <option value="Normal">Normal</option>
+                        <option value="Slow">Slow Moving</option>
+                    </select>
+                </div>
+
+                <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location / Bin</label>
+                    <input
+                        type="text"
+                        value={location}
+                        onChange={e => setLocation(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        placeholder="e.g. A-12, Warehouse 1"
+                    />
+                </div>
+                
+                {/* Description with AI Gen */}
+                <div className="col-span-2">
+                    <div className="flex justify-between items-center mb-1">
+                        <label className="block text-sm font-medium text-gray-700">Description</label>
+                        <button
+                            type="button"
+                            onClick={handleGenerateDescription}
+                            disabled={isGeneratingDesc || !name}
+                            className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-800 disabled:text-gray-400"
+                        >
+                            {isGeneratingDesc ? <Loader2 size={12} className="animate-spin"/> : <Sparkles size={12}/>}
+                            Generate with AI
+                        </button>
+                    </div>
+                    <textarea
+                        rows={3}
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                </div>
+
+            </div>
+            </form>
+        )}
+
+        {/* STOCK TAB */}
+        {activeTab === 'stock' && (
+            <div className="space-y-8">
+                {/* Stock Adjustment Card */}
+                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+                        <ArrowRightLeft size={16} />
+                        Update Stock Level
+                    </h3>
+                    <form onSubmit={handleStockAdjustment} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                         <div className="md:col-span-1">
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Action</label>
+                            <select 
+                                value={adjType}
+                                onChange={(e) => setAdjType(e.target.value as MovementType)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            >
+                                <option value={MovementType.IN}>Restock (IN)</option>
+                                <option value={MovementType.OUT}>Used / Sold (OUT)</option>
+                                <option value={MovementType.ADJUSTMENT}>Correction (SET)</option>
+                            </select>
+                         </div>
+                         <div className="md:col-span-1">
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Quantity ({costUnit})</label>
+                            <input 
+                                type="number" 
+                                min="1"
+                                value={adjQuantity}
+                                onChange={e => setAdjQuantity(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                placeholder="0"
+                            />
+                         </div>
+                         <div className="md:col-span-2">
+                             <label className="block text-xs font-medium text-gray-500 mb-1">Reason</label>
+                             <div className="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    value={adjReason}
+                                    onChange={e => setAdjReason(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1"
+                                    placeholder="e.g. Purchase Order #123"
+                                />
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium whitespace-nowrap"
+                                >
+                                    Update
+                                </button>
+                             </div>
+                         </div>
+                    </form>
+                </div>
+
+                {/* Stock History Table */}
+                <div>
+                     <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+                        <History size={16} />
+                        Stock History
+                    </h3>
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
+                                <tr>
+                                    <th className="px-4 py-3">Date</th>
+                                    <th className="px-4 py-3">Type</th>
+                                    <th className="px-4 py-3 text-right">Change ({costUnit})</th>
+                                    <th className="px-4 py-3">Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {itemMovements.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
+                                            No movement history available.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    itemMovements.slice().sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(m => (
+                                        <tr key={m.id}>
+                                            <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                                                {new Date(m.date).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                    m.type === 'IN' ? 'bg-green-100 text-green-800' :
+                                                    m.type === 'OUT' ? 'bg-red-100 text-red-800' :
+                                                    'bg-orange-100 text-orange-800'
+                                                }`}>
+                                                    {m.type}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-mono font-medium">
+                                                {m.type === 'OUT' ? '-' : '+'}{m.quantity}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-500">
+                                                {m.reason}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        )}
+      </div>
+
+      {/* Footer / Actions - Only show Save for Details tab */}
+      {activeTab === 'details' && (
+        <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-auto">
+            <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                form="item-form"
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2"
+            >
+                <Save size={18} />
+                {initialData ? 'Update Details' : 'Save Item'}
+            </button>
+        </div>
+      )}
+
+      {/* Close button for Stock tab */}
+      {activeTab === 'stock' && (
+           <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-auto">
+            <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+                Close
+            </button>
+        </div>
+      )}
+
+      <SupplierSelectionModal 
+        isOpen={isSupplierModalOpen}
+        onClose={() => setIsSupplierModalOpen(false)}
+        onSelect={(id) => setSupplierId(id)}
+        selectedId={supplierId || ''}
+      />
+    </div>
+  );
+};
+
+export default ItemForm;
