@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useInventory } from '../../contexts/InventoryContext';
 import { InventoryItem, MovementType } from '../../types';
-import { Search, ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, CheckCircle, Calculator, PackageX, Info, MapPin, Layers, Building2, Tag, Package, Eye } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, CheckCircle, Calculator, PackageX, Info, MapPin, Layers, Building2, Tag, Package, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../ui/Modal';
+import ReceiptModal from './ReceiptModal';
 
 interface CartItem extends InventoryItem {
   cartQuantity: number;
@@ -23,8 +24,13 @@ const PointOfSale: React.FC = () => {
   const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null);
   const [modalQuantity, setModalQuantity] = useState(1);
 
-  // Image Preview State
-  const [previewImage, setPreviewImage] = useState<{name: string, url: string} | null>(null);
+  // Image Preview Gallery State
+  const [previewGallery, setPreviewGallery] = useState<{name: string, images: string[]} | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Receipt State
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastTransaction, setLastTransaction] = useState<any>(null);
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -104,7 +110,26 @@ const PointOfSale: React.FC = () => {
   const handleCheckout = () => {
     if (!canCheckout) return;
 
-    // 1. Process Stock Movements
+    // 1. Prepare Data for Receipt & History
+    const receiptItems = cart.map(item => ({
+        name: item.name,
+        quantity: item.cartQuantity,
+        price: item.priceType === 'retail' ? item.retailPrice : item.wholesalePrice,
+        sku: item.sku
+    }));
+
+    const transactionData = {
+        transactionId: Math.random().toString(36).substr(2, 6).toUpperCase(),
+        date: new Date().toISOString(),
+        items: receiptItems,
+        subtotal: cartTotal,
+        total: cartTotal,
+        cashReceived: receivedNum,
+        change: change,
+        cashier: 'Admin' // Default user
+    };
+
+    // 2. Process Stock Movements
     cart.forEach(cartItem => {
       addMovement({
         itemId: cartItem.id,
@@ -114,14 +139,19 @@ const PointOfSale: React.FC = () => {
       });
     });
 
-    // 2. Process Wallet Transaction
+    // 3. Process Wallet Transaction (Pass itemsSnapshot)
     addWalletTransaction(
         cartTotal,
         'SALE',
-        `POS Sale: ${cart.length} items`
+        `POS Sale: ${cart.length} items`,
+        receiptItems // New: Pass items for history viewing
     );
 
-    // Reset
+    // 4. Update UI & Show Receipt
+    setLastTransaction(transactionData);
+    setShowReceipt(true);
+    
+    // Reset Cart
     setCart([]);
     setAmountReceived('');
     setIsCheckoutSuccess(true);
@@ -136,9 +166,25 @@ const PointOfSale: React.FC = () => {
 
   const handlePreviewImage = (e: React.MouseEvent, item: InventoryItem) => {
     e.stopPropagation();
-    if (item.imageUrl) {
-        setPreviewImage({ name: item.name, url: item.imageUrl });
+    
+    const images = (item.images && item.images.length > 0) 
+        ? item.images 
+        : (item.imageUrl ? [item.imageUrl] : []);
+
+    if (images.length > 0) {
+        setPreviewGallery({ name: item.name, images });
+        setCurrentImageIndex(0);
     }
+  };
+
+  const nextImage = () => {
+      if (!previewGallery) return;
+      setCurrentImageIndex((prev) => (prev + 1) % previewGallery.images.length);
+  };
+
+  const prevImage = () => {
+      if (!previewGallery) return;
+      setCurrentImageIndex((prev) => (prev - 1 + previewGallery.images.length) % previewGallery.images.length);
   };
 
   return (
@@ -186,78 +232,81 @@ const PointOfSale: React.FC = () => {
              </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4">
-              {filteredItems.map(item => (
-                <div
-                  key={item.id}
-                  onClick={() => addToCart(item)}
-                  role="button"
-                  tabIndex={0}
-                  className="group flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-left relative overflow-hidden h-full p-0 cursor-pointer"
-                >
-                  {/* Image Section */}
-                  <div className="relative w-full h-32 bg-gray-100 flex items-center justify-center overflow-hidden group/image">
-                       {item.imageUrl ? (
-                           <>
-                            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                            {/* Eye Icon Overlay - Centered */}
-                            <div 
-                                onClick={(e) => handlePreviewImage(e, item)}
-                                className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity cursor-pointer z-20"
-                            >
-                                <div className="bg-white/90 p-2 rounded-full text-gray-800 shadow-sm hover:bg-white hover:scale-110 transition-transform">
-                                    <Eye size={18} />
+              {filteredItems.map(item => {
+                const displayImage = (item.images && item.images.length > 0) ? item.images[0] : item.imageUrl;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => addToCart(item)}
+                    role="button"
+                    tabIndex={0}
+                    className="group flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-left relative overflow-hidden h-full p-0 cursor-pointer"
+                  >
+                    {/* Image Section */}
+                    <div className="relative w-full h-32 bg-gray-100 flex items-center justify-center overflow-hidden group/image">
+                        {displayImage ? (
+                            <>
+                              <img src={displayImage} alt={item.name} className="w-full h-full object-cover" />
+                              {/* Eye Icon Overlay - Centered */}
+                              <div 
+                                  onClick={(e) => handlePreviewImage(e, item)}
+                                  className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity cursor-pointer z-20"
+                              >
+                                  <div className="bg-white/90 p-2 rounded-full text-gray-800 shadow-sm hover:bg-white hover:scale-110 transition-transform">
+                                      <Eye size={18} />
+                                  </div>
+                              </div>
+                            </>
+                        ) : (
+                            <Package size={32} className="text-gray-300" />
+                        )}
+                        {/* Add to Cart Overlay (Top Right) */}
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <div className="bg-indigo-600 text-white p-1.5 rounded-full shadow-lg">
+                                <Plus size={16} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="p-3 flex flex-col flex-1 w-full">
+                        <div className="flex-1 mb-2">
+                            <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-1 leading-tight">{item.name}</h3>
+                            <p className="text-xs text-gray-500 mb-1">{item.sku}</p>
+                            <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">
+                              {item.category}
+                            </span>
+                        </div>
+                        
+                        <div className="mt-auto pt-2 border-t border-gray-50 w-full space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] text-gray-500 uppercase font-semibold">Retail</span>
+                              <span className="font-bold text-gray-900 text-sm">₱{item.retailPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] text-gray-500 uppercase font-semibold">Wholesale</span>
+                              <span className="font-bold text-blue-600 text-sm">₱{item.wholesalePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                            {/* Stock Badge */}
+                            <div className="flex items-center justify-between mt-1 pt-1">
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${item.quantity > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                    {item.quantity.toLocaleString()} {item.costUnit || 'pcs'}
+                                </span>
+                                {/* View Details Icon */}
+                                <div 
+                                    role="button"
+                                    onClick={(e) => handleViewDetails(e, item)}
+                                    className="p-1 text-gray-400 hover:text-indigo-600 transition-colors z-30 relative"
+                                    title="View Details"
+                                >
+                                    <Info size={14} />
                                 </div>
                             </div>
-                           </>
-                       ) : (
-                           <Package size={32} className="text-gray-300" />
-                       )}
-                       {/* Add to Cart Overlay (Top Right) */}
-                       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <div className="bg-indigo-600 text-white p-1.5 rounded-full shadow-lg">
-                              <Plus size={16} />
-                          </div>
-                      </div>
+                        </div>
+                    </div>
                   </div>
-
-                  {/* Content Section */}
-                  <div className="p-3 flex flex-col flex-1 w-full">
-                      <div className="flex-1 mb-2">
-                          <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-1 leading-tight">{item.name}</h3>
-                          <p className="text-xs text-gray-500 mb-1">{item.sku}</p>
-                          <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">
-                            {item.category}
-                          </span>
-                      </div>
-                      
-                      <div className="mt-auto pt-2 border-t border-gray-50 w-full space-y-1">
-                          <div className="flex justify-between items-center">
-                             <span className="text-[10px] text-gray-500 uppercase font-semibold">Retail</span>
-                             <span className="font-bold text-gray-900 text-sm">₱{item.retailPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                             <span className="text-[10px] text-gray-500 uppercase font-semibold">Wholesale</span>
-                             <span className="font-bold text-blue-600 text-sm">₱{item.wholesalePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                          </div>
-                          {/* Stock Badge */}
-                          <div className="flex items-center justify-between mt-1 pt-1">
-                              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${item.quantity > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                  {item.quantity.toLocaleString()} {item.costUnit || 'pcs'}
-                              </span>
-                              {/* View Details Icon */}
-                               <div 
-                                  role="button"
-                                  onClick={(e) => handleViewDetails(e, item)}
-                                  className="p-1 text-gray-400 hover:text-indigo-600 transition-colors z-30 relative"
-                                  title="View Details"
-                              >
-                                  <Info size={14} />
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -540,31 +589,74 @@ const PointOfSale: React.FC = () => {
         )}
       </Modal>
 
-      {/* Image Preview Modal */}
+      {/* Image Preview Carousel Modal */}
       <Modal 
-        isOpen={!!previewImage} 
-        onClose={() => setPreviewImage(null)}
-        title={previewImage?.name || 'Product Image'}
+        isOpen={!!previewGallery} 
+        onClose={() => setPreviewGallery(null)}
+        title={previewGallery?.name || 'Product Image'}
         maxWidth="max-w-xl"
       >
-        <div className="flex justify-center bg-gray-50 rounded-lg p-2 overflow-hidden">
-            {previewImage && (
-                <img 
-                    src={previewImage.url} 
-                    alt={previewImage.name} 
-                    className="max-w-full max-h-[70vh] object-contain rounded-md shadow-sm" 
-                />
+        <div className="relative flex flex-col items-center">
+            <div className="w-full flex items-center justify-center bg-gray-50 rounded-lg p-2 overflow-hidden relative" style={{ minHeight: '300px' }}>
+                {previewGallery && previewGallery.images.length > 0 && (
+                    <img 
+                        src={previewGallery.images[currentImageIndex]} 
+                        alt={`Preview ${currentImageIndex + 1}`} 
+                        className="max-w-full max-h-[60vh] object-contain rounded-md shadow-sm transition-opacity duration-200" 
+                    />
+                )}
+                
+                {/* Carousel Controls */}
+                {previewGallery && previewGallery.images.length > 1 && (
+                    <>
+                        <button 
+                            onClick={prevImage}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white text-gray-800 shadow-md transition-all"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+                        <button 
+                            onClick={nextImage}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white text-gray-800 shadow-md transition-all"
+                        >
+                            <ChevronRight size={24} />
+                        </button>
+                    </>
+                )}
+            </div>
+            
+             {/* Dots / Counter */}
+             {previewGallery && previewGallery.images.length > 1 && (
+                <div className="flex gap-2 mt-4">
+                    {previewGallery.images.map((_, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setCurrentImageIndex(idx)}
+                            className={`w-2 h-2 rounded-full transition-colors ${
+                                idx === currentImageIndex ? 'bg-indigo-600' : 'bg-gray-300 hover:bg-gray-400'
+                            }`}
+                        />
+                    ))}
+                </div>
             )}
-        </div>
-        <div className="mt-4 flex justify-end">
-             <button
-                onClick={() => setPreviewImage(null)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors"
-            >
-                Close
-            </button>
+            
+            <div className="w-full mt-4 flex justify-end">
+                <button
+                    onClick={() => setPreviewGallery(null)}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors"
+                >
+                    Close
+                </button>
+            </div>
         </div>
       </Modal>
+
+      {/* RECEIPT MODAL */}
+      <ReceiptModal 
+        isOpen={showReceipt} 
+        onClose={() => setShowReceipt(false)} 
+        data={lastTransaction}
+      />
 
     </div>
   );

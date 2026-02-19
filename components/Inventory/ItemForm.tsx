@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { InventoryItem, MovementType } from '../../types';
 import { useInventory } from '../../contexts/InventoryContext';
-import { Search, Loader2, Sparkles, Save, History, Box, ArrowRightLeft, Settings, Plus, Trash2, ChevronLeft, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { Search, Loader2, Sparkles, Save, History, Box, ArrowRightLeft, Settings, Plus, Trash2, ChevronLeft, Image as ImageIcon, ExternalLink, X } from 'lucide-react';
 import SupplierSelectionModal from '../Suppliers/SupplierSelectionModal';
 import { generateItemDescription } from '../../services/geminiService';
 
@@ -38,6 +38,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
   // Tab State
   const [activeTab, setActiveTab] = useState<'details' | 'stock'>('details');
   const [isManagingCategories, setIsManagingCategories] = useState(false);
+  const [isManagingImages, setIsManagingImages] = useState(false);
   
   // Local state for form fields
   const [sku, setSku] = useState('');
@@ -53,7 +54,9 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
   const [supplierId, setSupplierId] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  
+  // Multiple Images State
+  const [images, setImages] = useState<string[]>(['']);
 
   // Stock Adjustment State
   const [adjType, setAdjType] = useState<MovementType>(MovementType.IN);
@@ -82,13 +85,21 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
       setSupplierId(initialData.supplierId);
       setLocation(initialData.location);
       setDescription(initialData.description);
-      // Auto-fix existing Google Drive links on load
-      setImageUrl(processImageUrl(initialData.imageUrl || ''));
+      
+      // Initialize images
+      if (initialData.images && initialData.images.length > 0) {
+        setImages(initialData.images);
+      } else if (initialData.imageUrl) {
+        setImages([processImageUrl(initialData.imageUrl)]);
+      } else {
+        setImages(['']);
+      }
     } else {
       // Defaults for new item
       setQuantity('0');
       setMinStockLevel('5');
       setCostUnit('pcs');
+      setImages(['']);
       if (categories.length > 0) setCategory(categories[0]);
     }
   }, [initialData, categories]);
@@ -108,6 +119,9 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
       return;
     }
 
+    // Filter out empty image strings
+    const validImages = images.filter(img => img.trim() !== '');
+
     const itemData = {
       sku,
       name,
@@ -122,7 +136,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
       supplierId,
       location,
       description,
-      imageUrl,
+      imageUrl: validImages[0] || '', // Primary image for backward compatibility
+      images: validImages, // Store all images
     };
 
     if (initialData && initialData.id) {
@@ -133,9 +148,20 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
     onClose();
   };
 
-  const handleImageInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const processedUrl = processImageUrl(e.target.value);
-    setImageUrl(processedUrl);
+  const handleImageChange = (index: number, value: string) => {
+    const processedUrl = processImageUrl(value);
+    const newImages = [...images];
+    newImages[index] = processedUrl;
+    setImages(newImages);
+  };
+
+  const addImageField = () => {
+    setImages([...images, '']);
+  };
+
+  const removeImageField = (index: number) => {
+    const newImages = images.filter((_, i) => i !== index);
+    setImages(newImages.length > 0 ? newImages : ['']);
   };
 
   // Handle Stock Adjustment Submit
@@ -230,6 +256,83 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
       );
   }
 
+  // --- RENDER: Image Management View ---
+  if (isManagingImages) {
+    return (
+        <div className="flex flex-col h-[500px]">
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
+                <button onClick={() => setIsManagingImages(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-500">
+                    <ChevronLeft size={20} />
+                </button>
+                <div>
+                    <h3 className="font-bold text-lg text-gray-800">Manage Images</h3>
+                    <p className="text-xs text-gray-500">Add or remove product image URLs</p>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2">
+                <div className="space-y-4">
+                    {images.map((img, idx) => (
+                        <div key={idx} className="bg-gray-50 p-3 rounded-xl border border-gray-100 relative group">
+                             <div className="flex gap-3 items-start">
+                                 <div className="flex-1 space-y-2">
+                                    <div className="flex justify-between">
+                                        <label className="text-xs font-semibold text-gray-500 uppercase">Image {idx + 1} {idx === 0 ? '(Primary)' : ''}</label>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => removeImageField(idx)} 
+                                            className="text-red-400 hover:text-red-600 transition-colors p-1"
+                                            title="Remove image"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                    <input 
+                                        type="url"
+                                        value={img}
+                                        onChange={(e) => handleImageChange(idx, e.target.value)}
+                                        placeholder={idx === 0 ? "Primary Image URL (e.g. Google Drive)" : "Additional Image URL"}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
+                                        autoFocus={idx === images.length - 1 && img === ''} 
+                                    />
+                                    {idx === 0 && (
+                                        <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                                            <ExternalLink size={10} /> Supports Google Drive links (Ensure "Anyone with the link" is ON)
+                                        </p>
+                                    )}
+                                    {/* Preview Area Inside Input Card */}
+                                    {img && (
+                                        <div className="mt-2 h-32 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden relative">
+                                            <img src={img} alt="Preview" className="h-full w-full object-contain" onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
+                                        </div>
+                                    )}
+                                 </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                
+                <button 
+                    type="button" 
+                    onClick={addImageField} 
+                    className="mt-4 w-full py-3 border-2 border-dashed border-indigo-200 rounded-xl text-indigo-600 font-medium hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center justify-center gap-2"
+                >
+                    <Plus size={18} /> Add Another Image
+                </button>
+            </div>
+            
+            <div className="pt-4 mt-auto border-t border-gray-100">
+                 <button 
+                    onClick={() => setIsManagingImages(false)} 
+                    className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                    Done
+                </button>
+            </div>
+        </div>
+    );
+  }
+
   // --- RENDER: Main Item Form ---
   return (
     <div className="flex flex-col h-[600px]">
@@ -270,38 +373,56 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
             <form id="item-form" onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
-                {/* Image URL */}
+                {/* Image URLs - Summary View */}
                 <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Product Image URL</label>
-                    <div className="flex gap-4 items-start">
-                        <div className="flex-1">
-                            <input
-                                type="url"
-                                value={imageUrl}
-                                onChange={handleImageInput}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="Paste Google Drive or Image Link..."
-                            />
-                            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                               <ExternalLink size={10} /> Supports Google Drive links (Ensure "Anyone with the link" is ON)
-                            </p>
-                        </div>
-                        <div className="w-20 h-20 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 relative">
-                            {imageUrl ? (
-                                <img 
-                                    src={imageUrl} 
-                                    alt="Preview" 
-                                    className="w-full h-full object-cover" 
-                                    onError={(e) => {
-                                        // Fallback if image fails to load
-                                        e.currentTarget.style.display = 'none';
-                                        e.currentTarget.parentElement?.classList.add('bg-red-50');
-                                    }}
-                                />
-                            ) : (
-                                <span className="text-gray-300"><ImageIcon size={24}/></span>
-                            )}
-                        </div>
+                    <div className="flex justify-between items-end mb-2">
+                        <label className="block text-sm font-medium text-gray-700">Product Images</label>
+                        <button 
+                            type="button"
+                            onClick={() => setIsManagingImages(true)}
+                            className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-md flex items-center gap-1 transition-colors"
+                        >
+                            <Settings size={14} /> Manage Images ({images.filter(i => i.trim()).length})
+                        </button>
+                    </div>
+                    
+                    {/* Horizontal Scroll of Previews */}
+                    <div 
+                        className="flex gap-3 overflow-x-auto py-3 px-3 bg-gray-50 rounded-xl border border-gray-200 min-h-[100px] items-center scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
+                    >
+                        {images.filter(i => i.trim()).length > 0 ? (
+                            images.filter(i => i.trim()).map((img, idx) => (
+                                <div key={idx} className="relative w-20 h-20 flex-shrink-0 bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm group cursor-pointer" onClick={() => setIsManagingImages(true)}>
+                                    <img src={img} alt={`Img ${idx}`} className="w-full h-full object-cover" />
+                                    {idx === 0 && (
+                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] text-center py-0.5 font-medium">
+                                            PRIMARY
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div 
+                                onClick={() => setIsManagingImages(true)}
+                                className="w-full flex flex-col items-center justify-center text-gray-400 gap-2 cursor-pointer hover:text-indigo-500 transition-colors py-2"
+                            >
+                                <div className="p-3 rounded-full bg-white border border-gray-200 shadow-sm">
+                                    <ImageIcon size={24} />
+                                </div>
+                                <span className="text-xs font-medium">No images added yet. Click to manage.</span>
+                            </div>
+                        )}
+                        
+                        {images.filter(i => i.trim()).length > 0 && (
+                             <button 
+                                type="button"
+                                onClick={() => setIsManagingImages(true)}
+                                className="w-20 h-20 flex-shrink-0 bg-white rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-all"
+                            >
+                                <Plus size={24} />
+                                <span className="text-[10px] font-medium mt-1">Add</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 

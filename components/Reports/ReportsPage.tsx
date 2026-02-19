@@ -4,10 +4,11 @@ import {
   BarChart3, TrendingUp, DollarSign, Package, Calendar, 
   PieChart, ChevronLeft, ChevronRight, Filter, CalendarDays,
   Plus, Trash2, Wallet, ArrowDownLeft, ArrowUpRight, Minus,
-  AlertTriangle, PiggyBank
+  AlertTriangle, PiggyBank, Receipt
 } from 'lucide-react';
 import { MovementType, WalletTransactionType } from '../../types';
 import Modal from '../ui/Modal';
+import ReceiptModal from '../POS/ReceiptModal';
 
 type ReportTab = 'sales' | 'inventory' | 'wallet';
 type ReportPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all';
@@ -27,6 +28,9 @@ const ReportsPage: React.FC = () => {
   // Wallet Modal State
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [walletForm, setWalletForm] = useState({ type: 'WITHDRAWAL' as WalletTransactionType, amount: '', reason: '' });
+
+  // Receipt Modal State
+  const [receiptData, setReceiptData] = useState<any>(null);
 
   // --- Date Logic Helpers ---
 
@@ -137,6 +141,21 @@ const ReportsPage: React.FC = () => {
     addWalletTransaction(amt, walletForm.type, walletForm.reason);
     setWalletForm({ type: 'WITHDRAWAL', amount: '', reason: '' });
     setIsWalletModalOpen(false);
+  };
+
+  const handleViewReceipt = (tx: any) => {
+      if (!tx.itemsSnapshot) return;
+      
+      const data = {
+          transactionId: tx.id.substring(0,6).toUpperCase(),
+          date: tx.date,
+          items: tx.itemsSnapshot,
+          subtotal: tx.amount, // Approximate for history
+          total: tx.amount,
+          cashReceived: tx.amount, // No record of exact change in history
+          change: 0
+      };
+      setReceiptData(data);
   };
 
   // --- Calculations: Sales & Profit & Expenses ---
@@ -584,12 +603,13 @@ const ReportsPage: React.FC = () => {
                                 <th className="px-6 py-4">Type</th>
                                 <th className="px-6 py-4">Description</th>
                                 <th className="px-6 py-4 text-right">Amount</th>
+                                <th className="px-6 py-4 text-center">Receipt</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {walletData.log.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="p-12 text-center text-gray-400">
+                                    <td colSpan={5} className="p-12 text-center text-gray-400">
                                         No transactions found in this period.
                                     </td>
                                 </tr>
@@ -614,6 +634,17 @@ const ReportsPage: React.FC = () => {
                                             <td className="px-6 py-3 font-medium text-gray-800">{tx.reason}</td>
                                             <td className={`px-6 py-3 text-right font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
                                                 {isPositive ? '+' : '-'}₱{tx.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                            </td>
+                                            <td className="px-6 py-3 text-center">
+                                                {tx.itemsSnapshot && (
+                                                    <button 
+                                                        onClick={() => handleViewReceipt(tx)}
+                                                        className="text-gray-400 hover:text-indigo-600 transition-colors"
+                                                        title="View Receipt"
+                                                    >
+                                                        <Receipt size={16} />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     );
@@ -887,6 +918,13 @@ const ReportsPage: React.FC = () => {
             </div>
         </form>
       </Modal>
+
+      {/* --- RECEIPT VIEWER --- */}
+      <ReceiptModal 
+        isOpen={!!receiptData}
+        onClose={() => setReceiptData(null)}
+        data={receiptData}
+      />
 
     </div>
   );

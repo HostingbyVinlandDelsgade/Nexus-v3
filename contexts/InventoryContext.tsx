@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { InventoryItem, Supplier, StockMovement, MovementType, Expense, WalletTransaction, WalletTransactionType } from '../types';
+import { InventoryItem, Supplier, StockMovement, MovementType, Expense, WalletTransaction, WalletTransactionType, ReceiptItem } from '../types';
 
 interface InventoryContextType {
   items: InventoryItem[];
@@ -20,7 +20,7 @@ interface InventoryContextType {
   addExpense: (expense: Omit<Expense, 'id'>) => void;
   deleteExpense: (id: string) => void;
   
-  addWalletTransaction: (amount: number, type: WalletTransactionType, reason: string) => void;
+  addWalletTransaction: (amount: number, type: WalletTransactionType, reason: string, itemsSnapshot?: ReceiptItem[]) => void;
   
   addCategory: (category: string) => void;
   deleteCategory: (category: string) => void;
@@ -334,13 +334,14 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   // Wallet Logic
-  const addWalletTransaction = (amount: number, type: WalletTransactionType, reason: string) => {
+  const addWalletTransaction = (amount: number, type: WalletTransactionType, reason: string, itemsSnapshot?: ReceiptItem[]) => {
      const tx: WalletTransaction = {
          id: Math.random().toString(36).substr(2, 9),
          date: new Date().toISOString(),
          amount,
          type,
-         reason
+         reason,
+         itemsSnapshot
      };
      setWalletTransactions(prev => [tx, ...prev]);
   };

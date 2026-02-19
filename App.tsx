@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useInventory } from './contexts/InventoryContext';
-import { LayoutDashboard, Package, Users, History, Boxes, ShoppingCart, Settings as SettingsIcon, LogOut, BarChart3, Menu } from 'lucide-react';
+import { LayoutDashboard, Package, Users, History, Boxes, ShoppingCart, Settings as SettingsIcon, LogOut, BarChart3, Menu, Activity } from 'lucide-react';
 
 // Components
 import DashboardStats from './components/Dashboard/DashboardStats';
@@ -12,8 +12,9 @@ import PointOfSale from './components/POS/PointOfSale';
 import Settings from './components/Settings/Settings';
 import LoginPage from './components/Auth/LoginPage';
 import ReportsPage from './components/Reports/ReportsPage';
+import SystemFlow from './components/SystemFlow/SystemFlow';
 
-type View = 'dashboard' | 'inventory' | 'suppliers' | 'movements' | 'pos' | 'settings' | 'reports';
+type View = 'dashboard' | 'inventory' | 'suppliers' | 'movements' | 'pos' | 'settings' | 'reports' | 'flow';
 
 const App = () => {
   const { isAuthenticated, logout } = useInventory();
@@ -73,6 +74,7 @@ const App = () => {
           <NavItem view="movements" icon={History} label="Stock Movements" />
           
           <div className="my-4 border-t border-slate-800 pt-4">
+             <NavItem view="flow" icon={Activity} label="System Flow" />
              <NavItem view="settings" icon={SettingsIcon} label="Settings" />
           </div>
         </nav>
@@ -164,6 +166,12 @@ const App = () => {
                   {currentView === 'movements' && (
                       <div className="space-y-6 animate-fadeIn">
                           <StockMovementLog />
+                      </div>
+                  )}
+
+                  {currentView === 'flow' && (
+                      <div className="space-y-6 animate-fadeIn h-full">
+                          <SystemFlow />
                       </div>
                   )}
 

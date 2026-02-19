@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useInventory } from '../../contexts/InventoryContext';
 import { InventoryItem } from '../../types';
-import { Plus, Edit2, Trash2, Search, Filter, AlertCircle, TrendingUp, TrendingDown, Minus, Activity, Image as ImageIcon, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, AlertCircle, TrendingUp, TrendingDown, Minus, Activity, Image as ImageIcon, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../ui/Modal';
 import ItemForm from './ItemForm';
 
@@ -13,8 +13,9 @@ const InventoryList: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [filterSpeed, setFilterSpeed] = useState<string>('All');
   
-  // State for Image Preview (now stores object with name)
-  const [viewingImage, setViewingImage] = useState<{url: string, name: string} | null>(null);
+  // State for Image Preview Gallery
+  const [viewingGallery, setViewingGallery] = useState<{name: string, images: string[]} | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -39,6 +40,28 @@ const InventoryList: React.FC = () => {
   const handleAddNew = () => {
     setEditingItem(undefined);
     setIsModalOpen(true);
+  };
+
+  const handleViewImages = (item: InventoryItem) => {
+      // Determine list of images
+      const images = (item.images && item.images.length > 0) 
+        ? item.images 
+        : (item.imageUrl ? [item.imageUrl] : []);
+      
+      if (images.length > 0) {
+          setViewingGallery({ name: item.name, images });
+          setCurrentImageIndex(0);
+      }
+  };
+
+  const nextImage = () => {
+      if (!viewingGallery) return;
+      setCurrentImageIndex((prev) => (prev + 1) % viewingGallery.images.length);
+  };
+
+  const prevImage = () => {
+      if (!viewingGallery) return;
+      setCurrentImageIndex((prev) => (prev - 1 + viewingGallery.images.length) % viewingGallery.images.length);
   };
 
   const getSpeedBadge = (speed: string) => {
@@ -134,16 +157,19 @@ const InventoryList: React.FC = () => {
                 </tr>
             ) : filteredItems.map((item) => {
               const isLowStock = item.quantity <= item.minStockLevel;
+              const hasImages = (item.images && item.images.length > 0) || item.imageUrl;
+              const displayImage = (item.images && item.images.length > 0) ? item.images[0] : item.imageUrl;
+
               return (
                 <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
                   <td className="px-6 py-4">
                       <div 
-                        className={`group/img relative w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200 ${item.imageUrl ? 'cursor-pointer' : ''}`}
-                        onClick={() => item.imageUrl && setViewingImage({ url: item.imageUrl, name: item.name })}
+                        className={`group/img relative w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200 ${hasImages ? 'cursor-pointer' : ''}`}
+                        onClick={() => hasImages && handleViewImages(item)}
                       >
-                          {item.imageUrl ? (
+                          {displayImage ? (
                               <>
-                                <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                                <img src={displayImage} alt="" className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
                                     <Eye size={16} className="text-white" />
                                 </div>
@@ -225,29 +251,65 @@ const InventoryList: React.FC = () => {
         <ItemForm initialData={editingItem} onClose={() => setIsModalOpen(false)} />
       </Modal>
 
-      {/* Image Preview Modal */}
+      {/* Image Preview Carousel Modal */}
       <Modal 
-        isOpen={!!viewingImage} 
-        onClose={() => setViewingImage(null)}
-        title={viewingImage?.name || 'Product Image'}
+        isOpen={!!viewingGallery} 
+        onClose={() => setViewingGallery(null)}
+        title={viewingGallery?.name || 'Product Image'}
         maxWidth="max-w-xl"
       >
-        <div className="flex justify-center bg-gray-50 rounded-lg p-2 overflow-hidden">
-            {viewingImage && (
-                <img 
-                    src={viewingImage.url} 
-                    alt="Preview" 
-                    className="max-w-full max-h-[70vh] object-contain rounded-md shadow-sm" 
-                />
+        <div className="relative flex flex-col items-center">
+            <div className="w-full flex items-center justify-center bg-gray-50 rounded-lg p-2 overflow-hidden relative" style={{ minHeight: '300px' }}>
+                {viewingGallery && viewingGallery.images.length > 0 && (
+                    <img 
+                        src={viewingGallery.images[currentImageIndex]} 
+                        alt={`View ${currentImageIndex + 1}`} 
+                        className="max-w-full max-h-[60vh] object-contain rounded-md shadow-sm transition-opacity duration-200" 
+                    />
+                )}
+                
+                {/* Carousel Controls */}
+                {viewingGallery && viewingGallery.images.length > 1 && (
+                    <>
+                        <button 
+                            onClick={prevImage}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white text-gray-800 shadow-md transition-all"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+                        <button 
+                            onClick={nextImage}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white text-gray-800 shadow-md transition-all"
+                        >
+                            <ChevronRight size={24} />
+                        </button>
+                    </>
+                )}
+            </div>
+            
+            {/* Dots / Counter */}
+            {viewingGallery && viewingGallery.images.length > 1 && (
+                <div className="flex gap-2 mt-4">
+                    {viewingGallery.images.map((_, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setCurrentImageIndex(idx)}
+                            className={`w-2 h-2 rounded-full transition-colors ${
+                                idx === currentImageIndex ? 'bg-indigo-600' : 'bg-gray-300 hover:bg-gray-400'
+                            }`}
+                        />
+                    ))}
+                </div>
             )}
-        </div>
-        <div className="mt-4 flex justify-end">
-             <button
-                onClick={() => setViewingImage(null)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors"
-            >
-                Close
-            </button>
+            
+            <div className="w-full mt-4 flex justify-end">
+                <button
+                    onClick={() => setViewingGallery(null)}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors"
+                >
+                    Close
+                </button>
+            </div>
         </div>
       </Modal>
     </div>

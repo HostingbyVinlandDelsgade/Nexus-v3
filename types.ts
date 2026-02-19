@@ -26,7 +26,8 @@ export interface InventoryItem {
   supplierId: string;
   location: string;
   description: string;
-  imageUrl?: string; // New Image URL field
+  imageUrl?: string; // Primary Image URL (Legacy/Backward Compatibility)
+  images?: string[]; // New: Multiple Images support
   lastUpdated: string;
 }
 
@@ -56,12 +57,20 @@ export interface Expense {
 
 export type WalletTransactionType = 'SALE' | 'EXPENSE' | 'DEPOSIT' | 'WITHDRAWAL';
 
+export interface ReceiptItem {
+  name: string;
+  quantity: number;
+  price: number;
+  sku: string;
+}
+
 export interface WalletTransaction {
   id: string;
   type: WalletTransactionType;
   amount: number;
   date: string;
   reason: string;
+  itemsSnapshot?: ReceiptItem[]; // Store items for receipt reconstruction
 }
 
 export interface DashboardStats {
