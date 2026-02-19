@@ -11,6 +11,14 @@ export interface Supplier {
 
 export type MovementSpeed = 'Fast' | 'Normal' | 'Slow';
 
+export interface CompanyInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email?: string;
+  website?: string;
+}
+
 export interface InventoryItem {
   id: string;
   sku: string;

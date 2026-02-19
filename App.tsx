@@ -17,13 +17,18 @@ import SystemFlow from './components/SystemFlow/SystemFlow';
 type View = 'dashboard' | 'inventory' | 'suppliers' | 'movements' | 'pos' | 'settings' | 'reports' | 'flow';
 
 const App = () => {
-  const { isAuthenticated, logout } = useInventory();
+  const { isAuthenticated, logout, companyInfo } = useInventory();
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   if (!isAuthenticated) {
     return <LoginPage />;
   }
+
+  // Use dynamic company name or fallback
+  const appName = companyInfo ? companyInfo.name : 'Nexus Inv.';
+  // Create a short version for collapsed state or small headers if needed, 
+  // but for now we just use the name and let CSS handle truncation if necessary.
 
   const NavItem = ({ view, icon: Icon, label }: { view: View; icon: any; label: string }) => (
     <button
@@ -54,7 +59,7 @@ const App = () => {
             <div className="bg-indigo-500 p-1.5 rounded-lg flex-shrink-0">
                 <Boxes size={20} className="text-white" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">Nexus Inv.</h1>
+            <h1 className="text-xl font-bold tracking-tight whitespace-nowrap truncate max-w-[150px]" title={appName}>{appName}</h1>
           </div>
           
           <button 
@@ -102,7 +107,7 @@ const App = () => {
           <header className="md:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm z-10">
                <div className="flex items-center gap-2">
                   <Boxes size={24} className="text-indigo-600" />
-                  <span className="font-bold text-gray-900">Nexus Inventory</span>
+                  <span className="font-bold text-gray-900 truncate max-w-[200px]">{appName}</span>
                </div>
                <button onClick={logout} className="text-gray-500 hover:text-red-600">
                   <LogOut size={20} />

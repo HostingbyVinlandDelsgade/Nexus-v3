@@ -3,7 +3,7 @@ import { useInventory } from '../../contexts/InventoryContext';
 import { Lock, ArrowRight, User, Key } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
-  const { login } = useInventory();
+  const { login, companyInfo } = useInventory();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,7 +24,8 @@ const LoginPage: React.FC = () => {
             <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-200">
                 <Lock size={32} className="text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Nexus Inventory</h1>
+            {/* Dynamic Company Name */}
+            <h1 className="text-2xl font-bold text-gray-900">{companyInfo ? companyInfo.name : 'Nexus Inventory'}</h1>
             <p className="text-gray-500 mt-2">Sign in to manage your inventory</p>
         </div>
 

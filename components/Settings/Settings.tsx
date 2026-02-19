@@ -1,11 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useInventory } from '../../contexts/InventoryContext';
-import { Shield, Lock, Download, Upload, Trash2, AlertTriangle, Check, RefreshCw, Eye, EyeOff, UserCircle } from 'lucide-react';
+import { Shield, Lock, Download, Upload, Trash2, AlertTriangle, Check, RefreshCw, Eye, EyeOff, UserCircle, Building2 } from 'lucide-react';
 
 const Settings: React.FC = () => {
   const { 
     updatePasscode, verifyPasscode, updateCredentials,
-    exportData, importData, resetSystemData, factoryReset 
+    exportData, importData, resetSystemData, factoryReset,
+    companyInfo, updateCompanyInfo
   } = useInventory();
 
   // Settings Lock State
@@ -24,7 +25,15 @@ const Settings: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [credMessage, setCredMessage] = useState({ type: '', text: '' });
 
+  // Company Info State
+  const [companyForm, setCompanyForm] = useState(companyInfo);
+  const [companyMessage, setCompanyMessage] = useState({ type: '', text: '' });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+      setCompanyForm(companyInfo);
+  }, [companyInfo]);
 
   // --- Lock Screen Handler ---
   const handleUnlock = (e: React.FormEvent) => {
@@ -67,6 +76,13 @@ const Settings: React.FC = () => {
       setNewUsername('');
       setNewPassword('');
       setTimeout(() => setCredMessage({ type: '', text: '' }), 3000);
+  };
+
+  const handleUpdateCompanyInfo = (e: React.FormEvent) => {
+      e.preventDefault();
+      updateCompanyInfo(companyForm);
+      setCompanyMessage({ type: 'success', text: 'Company details updated!' });
+      setTimeout(() => setCompanyMessage({ type: '', text: '' }), 3000);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,6 +160,77 @@ const Settings: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">System Settings</h1>
             <p className="text-gray-500 text-sm">Manage security, credentials, and data</p>
         </div>
+      </div>
+
+      {/* Company Information */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+         <div className="p-6 border-b border-gray-100">
+             <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                 <Building2 size={20} className="text-indigo-600"/>
+                 Company Details
+             </h3>
+             <p className="text-sm text-gray-500">Details that appear on Receipts and Reports</p>
+         </div>
+         <div className="p-6">
+             <form onSubmit={handleUpdateCompanyInfo} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="md:col-span-2">
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                     <input
+                         type="text"
+                         value={companyForm.name}
+                         onChange={(e) => setCompanyForm({...companyForm, name: e.target.value})}
+                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                         placeholder="Business Name"
+                         required
+                     />
+                 </div>
+                 <div className="md:col-span-2">
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                     <input
+                         type="text"
+                         value={companyForm.address}
+                         onChange={(e) => setCompanyForm({...companyForm, address: e.target.value})}
+                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                         placeholder="123 Street Name, City"
+                         required
+                     />
+                 </div>
+                 <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                     <input
+                         type="text"
+                         value={companyForm.phone}
+                         onChange={(e) => setCompanyForm({...companyForm, phone: e.target.value})}
+                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                         placeholder="(02) 1234-5678"
+                         required
+                     />
+                 </div>
+                 <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Website (Optional)</label>
+                     <input
+                         type="text"
+                         value={companyForm.website || ''}
+                         onChange={(e) => setCompanyForm({...companyForm, website: e.target.value})}
+                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                         placeholder="www.example.com"
+                     />
+                 </div>
+                 
+                 <div className="md:col-span-2 flex items-center justify-between mt-2">
+                    {companyMessage.text ? (
+                         <div className={`text-sm flex items-center gap-2 ${companyMessage.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                             {companyMessage.type === 'success' ? <Check size={16}/> : <AlertTriangle size={16}/>}
+                             {companyMessage.text}
+                         </div>
+                     ) : <span></span>}
+                     
+                     <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
+                         Save Company Info
+                     </button>
+                 </div>
+             </form>
+         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

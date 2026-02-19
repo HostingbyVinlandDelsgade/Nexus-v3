@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { InventoryItem, Supplier, StockMovement, MovementType, Expense, WalletTransaction, WalletTransactionType, ReceiptItem } from '../types';
+import { InventoryItem, Supplier, StockMovement, MovementType, Expense, WalletTransaction, WalletTransactionType, ReceiptItem, CompanyInfo } from '../types';
 
 interface InventoryContextType {
   items: InventoryItem[];
@@ -9,6 +9,7 @@ interface InventoryContextType {
   walletTransactions: WalletTransaction[];
   walletBalance: number;
   categories: string[];
+  companyInfo: CompanyInfo;
   
   addItem: (item: Omit<InventoryItem, 'id' | 'lastUpdated'>) => void;
   updateItem: (id: string, updates: Partial<InventoryItem>) => void;
@@ -24,6 +25,8 @@ interface InventoryContextType {
   
   addCategory: (category: string) => void;
   deleteCategory: (category: string) => void;
+
+  updateCompanyInfo: (info: CompanyInfo) => void;
 
   getSupplierName: (id: string) => string;
   
@@ -46,6 +49,13 @@ const InventoryContext = createContext<InventoryContextType | undefined>(undefin
 const DEFAULT_PASSCODE = '0000';
 const DEFAULT_CREDS = { username: 'admin', password: 'password' };
 const DEFAULT_CATEGORIES = ['General', 'Electronics', 'Furniture', 'Stationery', 'Raw Materials', 'Food'];
+const DEFAULT_COMPANY_INFO: CompanyInfo = {
+  name: 'Nexus Inventory',
+  address: '123 Tech Avenue, Silicon City',
+  phone: '(02) 8888-1234',
+  email: 'admin@nexusinv.com',
+  website: 'www.nexusinv.com'
+};
 
 // --- TEST DATA GENERATION ---
 const SUP_ID_1 = 'sup_tech_ph';
@@ -233,6 +243,11 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
   });
 
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(() => {
+    const saved = localStorage.getItem('nexus_company_info');
+    return saved ? JSON.parse(saved) : DEFAULT_COMPANY_INFO;
+  });
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Calculate current wallet balance derived from history
@@ -253,7 +268,8 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     localStorage.setItem('nexus_passcode', passcode);
     localStorage.setItem('nexus_credentials', JSON.stringify(credentials));
     localStorage.setItem('nexus_categories', JSON.stringify(categories));
-  }, [items, suppliers, movements, expenses, walletTransactions, passcode, credentials, categories]);
+    localStorage.setItem('nexus_company_info', JSON.stringify(companyInfo));
+  }, [items, suppliers, movements, expenses, walletTransactions, passcode, credentials, categories, companyInfo]);
 
   // --- CRUD Operations ---
 
@@ -363,6 +379,10 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     setExpenses(prev => prev.filter(e => e.id !== id));
   };
 
+  const updateCompanyInfo = (info: CompanyInfo) => {
+    setCompanyInfo(info);
+  };
+
   const getSupplierName = (id: string) => {
     return suppliers.find(s => s.id === id)?.name || 'Unknown Supplier';
   };
@@ -403,6 +423,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       expenses,
       walletTransactions,
       categories,
+      companyInfo,
       exportedAt: new Date().toISOString(),
       version: '1.4' // Version bump
     };
@@ -431,6 +452,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       if (Array.isArray(data.expenses)) setExpenses(data.expenses);
       if (Array.isArray(data.walletTransactions)) setWalletTransactions(data.walletTransactions);
       if (Array.isArray(data.categories)) setCategories(data.categories);
+      if (data.companyInfo) setCompanyInfo(data.companyInfo);
       
       return true;
     } catch (e) {
@@ -445,8 +467,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     setMovements([]);
     setExpenses([]);
     setWalletTransactions([]);
-    // Do not reset Categories on data wipe, usually they are config
-    // The useEffect will handle persistence, overwriting storage with empty arrays
+    // Do not reset Categories or Company Info on data wipe, usually they are config
   };
 
   const factoryReset = () => {
@@ -462,6 +483,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     localStorage.removeItem('nexus_passcode');
     localStorage.removeItem('nexus_credentials');
     localStorage.removeItem('nexus_categories');
+    localStorage.removeItem('nexus_company_info');
     
     // Force reload to re-initialize from code constants (fresh start)
     window.location.reload();
@@ -469,13 +491,14 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   return (
     <InventoryContext.Provider value={{ 
-      items, suppliers, movements, expenses, walletTransactions, walletBalance, categories,
+      items, suppliers, movements, expenses, walletTransactions, walletBalance, categories, companyInfo,
       addItem, updateItem, deleteItem, 
       addSupplier, updateSupplier, 
       addMovement, 
       addExpense, deleteExpense,
       addWalletTransaction,
       addCategory, deleteCategory,
+      updateCompanyInfo,
       getSupplierName,
       isAuthenticated, login, logout, updateCredentials,
       verifyPasscode, updatePasscode,

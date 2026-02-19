@@ -28,24 +28,34 @@
 
       /* PRINT STYLES */
       @media print {
+        body {
+          background: white;
+        }
+        /* Hide everything by default */
         body * {
           visibility: hidden;
         }
+        /* Make printable area visible */
         .printable-area, .printable-area * {
           visibility: visible;
         }
+        /* Position printable area at top left of page */
         .printable-area {
-          position: fixed;
+          position: absolute;
           left: 0;
           top: 0;
           width: 100%;
-          height: 100%;
+          margin: 0;
+          padding: 20px;
           background: white;
-          z-index: 9999;
           display: flex;
-          justify-content: center;
-          align-items: flex-start;
-          padding-top: 20px;
+          justify-content: center; /* Center the receipt on the paper */
+        }
+        /* Ensure the receipt content box maintains its styling */
+        #receipt-content {
+          box-shadow: none !important;
+          border: none !important;
+          width: 80mm !important; /* Force thermal width */
         }
         .no-print {
           display: none !important;
@@ -60,7 +70,8 @@
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
     "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
     "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
-    "react-markdown": "https://esm.sh/react-markdown@^10.1.0"
+    "react-markdown": "https://esm.sh/react-markdown@^10.1.0",
+    "html2canvas": "https://esm.sh/html2canvas@^1.4.1"
   }
 }
 </script>
