@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useInventory } from './contexts/InventoryContext';
-import { LayoutDashboard, Package, Users, History, Boxes, ShoppingCart, Settings as SettingsIcon, LogOut, BarChart3, Menu, Activity } from 'lucide-react';
+import { LayoutDashboard, Package, Users, History, Boxes, ShoppingCart, Settings as SettingsIcon, LogOut, BarChart3, Menu, Activity, ShieldAlert } from 'lucide-react';
 
 // Components
 import DashboardStats from './components/Dashboard/DashboardStats';
@@ -17,18 +17,23 @@ import SystemFlow from './components/SystemFlow/SystemFlow';
 type View = 'dashboard' | 'inventory' | 'suppliers' | 'movements' | 'pos' | 'settings' | 'reports' | 'flow';
 
 const App = () => {
-  const { isAuthenticated, logout, companyInfo } = useInventory();
+  const { isAuthenticated, logout, companyInfo, currentUser } = useInventory();
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Effect to default cashiers to POS view
+  useEffect(() => {
+      if (currentUser?.role === 'cashier') {
+          setCurrentView('pos');
+      }
+  }, [currentUser]);
 
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
-  // Use dynamic company name or fallback
   const appName = companyInfo ? companyInfo.name : 'Nexus Inv.';
-  // Create a short version for collapsed state or small headers if needed, 
-  // but for now we just use the name and let CSS handle truncation if necessary.
+  const isCashier = currentUser?.role === 'cashier';
 
   const NavItem = ({ view, icon: Icon, label }: { view: View; icon: any; label: string }) => (
     <button
@@ -71,20 +76,35 @@ const App = () => {
         </div>
         
         <nav className="flex-1 p-4 overflow-x-hidden">
-          <NavItem view="dashboard" icon={LayoutDashboard} label="Dashboard" />
+          {/* Dashboard - Visible to everyone, but content might be limited for cashiers */}
+          {!isCashier && <NavItem view="dashboard" icon={LayoutDashboard} label="Dashboard" />}
+          
           <NavItem view="pos" icon={ShoppingCart} label="Point of Sale" />
-          <NavItem view="reports" icon={BarChart3} label="Reports" />
+          
+          {/* Restricted Views */}
+          {!isCashier && <NavItem view="reports" icon={BarChart3} label="Reports" />}
+          
           <NavItem view="inventory" icon={Package} label="Inventory" />
-          <NavItem view="suppliers" icon={Users} label="Suppliers" />
-          <NavItem view="movements" icon={History} label="Stock Movements" />
+          
+          {!isCashier && <NavItem view="suppliers" icon={Users} label="Suppliers" />}
+          {!isCashier && <NavItem view="movements" icon={History} label="Stock Movements" />}
           
           <div className="my-4 border-t border-slate-800 pt-4">
-             <NavItem view="flow" icon={Activity} label="System Flow" />
-             <NavItem view="settings" icon={SettingsIcon} label="Settings" />
+             {!isCashier && <NavItem view="flow" icon={Activity} label="System Flow" />}
+             {!isCashier && <NavItem view="settings" icon={SettingsIcon} label="Settings" />}
           </div>
         </nav>
 
         <div className="p-4 border-t border-slate-800">
+          <div className={`mb-3 flex items-center gap-2 px-2 transition-all ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
+                  {currentUser?.username.substring(0,2).toUpperCase()}
+              </div>
+              <div className={`text-xs text-slate-400 overflow-hidden ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                  <p className="font-medium text-white truncate">{currentUser?.name}</p>
+                  <p className="capitalize">{currentUser?.role}</p>
+              </div>
+          </div>
           <button 
             onClick={logout}
             className={`w-full flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors text-sm ${isSidebarCollapsed ? 'justify-center px-2' : ''}`}
@@ -95,9 +115,6 @@ const App = () => {
                 Logout
             </span>
           </button>
-          <div className={`mt-4 text-xs text-slate-600 text-center whitespace-nowrap overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'h-0 opacity-0' : 'h-auto opacity-100'}`}>
-             v1.0.0 &copy; 2024 Nexus Inc.
-          </div>
         </div>
       </aside>
 
@@ -116,14 +133,13 @@ const App = () => {
 
           <div className="flex-1 overflow-y-auto p-4 md:p-8">
               <div className="w-full h-full">
-                  {/* View Router */}
-                  {currentView === 'dashboard' && (
+                  {/* View Router with Access Control */}
+                  {currentView === 'dashboard' && !isCashier && (
                       <div className="space-y-6 animate-fadeIn">
                           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
                           <InventoryAssistant />
                           <DashboardStats />
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                              {/* Snippets of other views for the dashboard */}
                               <div>
                                   <h3 className="text-lg font-semibold mb-4 text-gray-700">Recent Stock Activity</h3>
                                   <div className="h-[400px] overflow-hidden rounded-xl border border-gray-100 shadow-sm relative">
@@ -150,7 +166,7 @@ const App = () => {
                       </div>
                   )}
 
-                  {currentView === 'reports' && (
+                  {currentView === 'reports' && !isCashier && (
                       <div className="h-full animate-fadeIn">
                            <ReportsPage />
                       </div>
@@ -162,40 +178,50 @@ const App = () => {
                       </div>
                   )}
 
-                  {currentView === 'suppliers' && (
+                  {currentView === 'suppliers' && !isCashier && (
                       <div className="space-y-6 animate-fadeIn">
                           <SupplierList />
                       </div>
                   )}
 
-                  {currentView === 'movements' && (
+                  {currentView === 'movements' && !isCashier && (
                       <div className="space-y-6 animate-fadeIn">
                           <StockMovementLog />
                       </div>
                   )}
 
-                  {currentView === 'flow' && (
+                  {currentView === 'flow' && !isCashier && (
                       <div className="space-y-6 animate-fadeIn h-full">
                           <SystemFlow />
                       </div>
                   )}
 
-                  {currentView === 'settings' && (
+                  {currentView === 'settings' && !isCashier && (
                       <div className="space-y-6 animate-fadeIn h-full">
                           <Settings />
+                      </div>
+                  )}
+
+                  {/* Fallback for Restricted Views */}
+                  {((['dashboard', 'reports', 'suppliers', 'movements', 'flow', 'settings'].includes(currentView) && isCashier)) && (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                          <ShieldAlert size={64} className="text-red-500 mb-4" />
+                          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Restricted</h2>
+                          <p className="text-gray-500 max-w-md">You do not have permission to view this page. This section is reserved for Administrators.</p>
+                          <button onClick={() => setCurrentView('pos')} className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Go to POS</button>
                       </div>
                   )}
               </div>
           </div>
       </main>
 
-      {/* Mobile Nav Bottom Bar (Optional, for mobile-first feel) */}
+      {/* Mobile Nav Bottom Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-3 z-20 safe-area-bottom">
-          <button onClick={() => setCurrentView('dashboard')} className={`p-2 rounded-lg ${currentView === 'dashboard' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><LayoutDashboard size={24}/></button>
+          {!isCashier && <button onClick={() => setCurrentView('dashboard')} className={`p-2 rounded-lg ${currentView === 'dashboard' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><LayoutDashboard size={24}/></button>}
           <button onClick={() => setCurrentView('pos')} className={`p-2 rounded-lg ${currentView === 'pos' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><ShoppingCart size={24}/></button>
-          <button onClick={() => setCurrentView('reports')} className={`p-2 rounded-lg ${currentView === 'reports' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><BarChart3 size={24}/></button>
+          {!isCashier && <button onClick={() => setCurrentView('reports')} className={`p-2 rounded-lg ${currentView === 'reports' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><BarChart3 size={24}/></button>}
           <button onClick={() => setCurrentView('inventory')} className={`p-2 rounded-lg ${currentView === 'inventory' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><Package size={24}/></button>
-          <button onClick={() => setCurrentView('settings')} className={`p-2 rounded-lg ${currentView === 'settings' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><SettingsIcon size={24}/></button>
+          {!isCashier && <button onClick={() => setCurrentView('settings')} className={`p-2 rounded-lg ${currentView === 'settings' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><SettingsIcon size={24}/></button>}
       </div>
     </div>
   );

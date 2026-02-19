@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useInventory } from '../../contexts/InventoryContext';
-import { Lock, ArrowRight, User, Key } from 'lucide-react';
+import { Lock, ArrowRight, User, Key, ShieldCheck, UserCircle } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const { login, companyInfo } = useInventory();
@@ -15,6 +15,12 @@ const LoginPage: React.FC = () => {
     } else {
       setError('Invalid username or password.');
     }
+  };
+
+  const fillCredentials = (u: string, p: string) => {
+      setUsername(u);
+      setPassword(p);
+      setError('');
   };
 
   return (
@@ -68,9 +74,35 @@ const LoginPage: React.FC = () => {
                 Login <ArrowRight size={20} />
             </button>
             
-            <p className="text-xs text-center text-gray-400 mt-6">
-                Default: admin / password
-            </p>
+            {/* Quick Login Helpers for Demo/Development */}
+            <div className="mt-8 pt-6 border-t border-gray-100">
+                <p className="text-xs text-center text-gray-400 mb-3 uppercase tracking-wide font-semibold">Available Accounts</p>
+                <div className="grid grid-cols-2 gap-3">
+                    <button 
+                        type="button"
+                        onClick={() => fillCredentials('admin', 'password')}
+                        className="flex flex-col items-center justify-center p-3 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors border border-purple-100 group"
+                    >
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <ShieldCheck size={14} className="text-purple-600"/>
+                            <span className="text-xs font-bold text-purple-700">Admin</span>
+                        </div>
+                        <span className="text-[10px] text-purple-600/70 group-hover:text-purple-700">admin / password</span>
+                    </button>
+
+                    <button 
+                        type="button"
+                        onClick={() => fillCredentials('cashier', '123')}
+                        className="flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors border border-blue-100 group"
+                    >
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <UserCircle size={14} className="text-blue-600"/>
+                            <span className="text-xs font-bold text-blue-700">Cashier</span>
+                        </div>
+                        <span className="text-[10px] text-blue-600/70 group-hover:text-blue-700">cashier / 123</span>
+                    </button>
+                </div>
+            </div>
         </form>
       </div>
     </div>

@@ -4,7 +4,7 @@ import {
   BarChart3, TrendingUp, DollarSign, Package, Calendar, 
   PieChart, ChevronLeft, ChevronRight, Filter, CalendarDays,
   Plus, Trash2, Wallet, ArrowDownLeft, ArrowUpRight, Minus,
-  AlertTriangle, PiggyBank, Receipt, Search
+  AlertTriangle, PiggyBank, Receipt, Search, User as UserIcon
 } from 'lucide-react';
 import { MovementType, WalletTransactionType } from '../../types';
 import Modal from '../ui/Modal';
@@ -14,12 +14,15 @@ type ReportTab = 'sales' | 'inventory' | 'wallet';
 type ReportPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all';
 
 const ReportsPage: React.FC = () => {
-  const { items, movements, expenses, walletTransactions, walletBalance, addExpense, deleteExpense, addWalletTransaction } = useInventory();
+  const { items, movements, expenses, walletTransactions, walletBalance, addExpense, deleteExpense, addWalletTransaction, users } = useInventory();
   const [activeTab, setActiveTab] = useState<ReportTab>('sales');
   
   // Date Navigation State
   const [period, setPeriod] = useState<ReportPeriod>('monthly');
   const [referenceDate, setReferenceDate] = useState(new Date());
+
+  // Filters
+  const [selectedCashier, setSelectedCashier] = useState<string>('All');
 
   // Expense Modal State
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -153,7 +156,8 @@ const ReportsPage: React.FC = () => {
           subtotal: tx.amount, 
           total: tx.amount,
           cashReceived: tx.amount, // History doesn't store exact cash tendered, assume exact
-          change: 0
+          change: 0,
+          cashier: tx.userName || 'Unknown'
       };
   };
 
@@ -186,7 +190,11 @@ const ReportsPage: React.FC = () => {
     // 1. Calculate Product Sales
     const filteredMovements = movements.filter(m => {
       const mDate = new Date(m.date);
-      return m.type === MovementType.OUT && mDate >= start && mDate <= end;
+      const isSales = m.type === MovementType.OUT;
+      const matchesPeriod = mDate >= start && mDate <= end;
+      const matchesUser = selectedCashier === 'All' || m.userId === selectedCashier;
+      
+      return isSales && matchesPeriod && matchesUser;
     });
     
     let totalRevenue = 0;
@@ -223,11 +231,15 @@ const ReportsPage: React.FC = () => {
         costPrice: buyingPrice,
         revenue,
         profit,
-        type: isWholesale ? 'Wholesale' : 'Retail'
+        type: isWholesale ? 'Wholesale' : 'Retail',
+        cashier: m.userName || 'Unknown'
       };
     }).filter(Boolean) as any[];
 
     // 2. Calculate Expenses
+    // Expenses are usually general, but if we track who added them, we could filter. 
+    // For now, expenses are global unless we add userId to expenses schema (which we haven't strictly enforced yet).
+    // We will show all expenses for the period regardless of cashier filter to keep net income realistic for the business.
     const filteredExpenses = expenses.filter(e => {
         const eDate = new Date(e.date);
         return eDate >= start && eDate <= end;
@@ -237,6 +249,8 @@ const ReportsPage: React.FC = () => {
 
     // 3. Totals
     const grossProfit = totalRevenue - totalCOGS;
+    // If filtering by cashier, Net Income might be misleading if expenses aren't assigned to cashiers.
+    // We will display Gross Profit primarily when filtering.
     const netIncome = grossProfit - totalExpenses;
     const margin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
 
@@ -251,7 +265,7 @@ const ReportsPage: React.FC = () => {
         margin, 
         totalItemsSold 
     };
-  }, [movements, items, expenses, period, referenceDate]);
+  }, [movements, items, expenses, period, referenceDate, selectedCashier]);
 
   // --- Calculations: Wallet & Cash Flow ---
   
@@ -260,7 +274,9 @@ const ReportsPage: React.FC = () => {
 
     const filteredTx = walletTransactions.filter(tx => {
         const d = new Date(tx.date);
-        return d >= start && d <= end;
+        const matchesPeriod = d >= start && d <= end;
+        const matchesUser = selectedCashier === 'All' || tx.userId === selectedCashier;
+        return matchesPeriod && matchesUser;
     });
 
     // Breakdown Cash In sources
@@ -284,7 +300,7 @@ const ReportsPage: React.FC = () => {
         cashOut, expensesOut, withdrawalsOut, 
         netCashFlow, isGrowing 
     };
-  }, [walletTransactions, period, referenceDate]);
+  }, [walletTransactions, period, referenceDate, selectedCashier]);
 
 
   // --- Calculations: Inventory Valuation ---
@@ -372,11 +388,11 @@ const ReportsPage: React.FC = () => {
       {activeTab === 'sales' && (
         <div className="space-y-6 animate-fadeIn">
           
-          {/* Advanced Period Selector */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+          {/* Advanced Period & User Selector */}
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col xl:flex-row justify-between items-center gap-4">
              
              {/* Period Type Buttons */}
-             <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
+             <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto">
                 {(['daily', 'weekly', 'monthly', 'yearly', 'all'] as ReportPeriod[]).map((p) => (
                    <button
                       key={p}
@@ -392,32 +408,49 @@ const ReportsPage: React.FC = () => {
                 ))}
              </div>
 
-             {/* Date Navigator */}
-             {period !== 'all' && (
-               <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1 border border-gray-200">
-                  <button onClick={() => handleNavigate('prev')} className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-gray-600 transition-all">
-                      <ChevronLeft size={20} />
-                  </button>
-                  
-                  <div className="flex items-center gap-2 px-2 min-w-[180px] justify-center font-semibold text-gray-800">
-                      <CalendarDays size={18} className="text-indigo-600" />
-                      <span>{formatPeriodLabel()}</span>
-                  </div>
+             <div className="flex flex-col md:flex-row gap-4 w-full xl:w-auto">
+                {/* Date Navigator */}
+                {period !== 'all' && (
+                <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1 border border-gray-200 justify-between md:justify-start">
+                    <button onClick={() => handleNavigate('prev')} className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-gray-600 transition-all">
+                        <ChevronLeft size={20} />
+                    </button>
+                    
+                    <div className="flex items-center gap-2 px-2 min-w-[160px] justify-center font-semibold text-gray-800">
+                        <CalendarDays size={18} className="text-indigo-600" />
+                        <span>{formatPeriodLabel()}</span>
+                    </div>
 
-                  <button onClick={() => handleNavigate('next')} className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-gray-600 transition-all">
-                      <ChevronRight size={20} />
-                  </button>
+                    <button onClick={() => handleNavigate('next')} className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-gray-600 transition-all">
+                        <ChevronRight size={20} />
+                    </button>
 
-                  <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                    <div className="w-px h-6 bg-gray-300 mx-1"></div>
 
-                  <button 
-                    onClick={setToday}
-                    className="px-3 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-md uppercase tracking-wide"
-                  >
-                    Current
-                  </button>
-               </div>
-             )}
+                    <button 
+                        onClick={setToday}
+                        className="px-3 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-md uppercase tracking-wide"
+                    >
+                        Current
+                    </button>
+                </div>
+                )}
+
+                {/* Cashier Filter */}
+                <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 min-w-[200px]">
+                    <UserIcon size={16} className="text-gray-500" />
+                    <select 
+                        value={selectedCashier}
+                        onChange={(e) => setSelectedCashier(e.target.value)}
+                        className="bg-transparent text-sm font-medium text-gray-700 outline-none w-full cursor-pointer"
+                    >
+                        <option value="All">All Cashiers/Users</option>
+                        {users.map(u => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                    </select>
+                </div>
+             </div>
           </div>
 
           {/* Stats Grid */}
@@ -429,19 +462,21 @@ const ReportsPage: React.FC = () => {
               colorClass="text-blue-600"
               subtext={`${salesData.totalItemsSold} items sold`}
             />
-            <StatCard 
-              title="Operational Expenses" 
-              value={`₱${salesData.totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
-              icon={Wallet} 
-              colorClass="text-red-500"
-              subtext="Rent, Utilities, etc."
-            />
+            {selectedCashier === 'All' && (
+                <StatCard 
+                title="Operational Expenses" 
+                value={`₱${salesData.totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
+                icon={Wallet} 
+                colorClass="text-red-500"
+                subtext="Rent, Utilities, etc."
+                />
+            )}
              <StatCard 
-              title="Net Income" 
-              value={`₱${salesData.netIncome.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
+              title={selectedCashier === 'All' ? "Net Income" : "Gross Profit (Cashier)"}
+              value={`₱${(selectedCashier === 'All' ? salesData.netIncome : salesData.grossProfit).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
               icon={TrendingUp} 
-              colorClass={salesData.netIncome >= 0 ? "text-green-600" : "text-red-600"}
-              subtext="Revenue - COGS - Expenses"
+              colorClass={salesData.grossProfit >= 0 ? "text-green-600" : "text-red-600"}
+              subtext={selectedCashier === 'All' ? "Revenue - COGS - Expenses" : "Revenue - Cost of Goods"}
             />
              <StatCard 
               title="Profit Margin" 
@@ -475,6 +510,7 @@ const ReportsPage: React.FC = () => {
                 <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
                    <tr>
                      <th className="px-6 py-4">Date</th>
+                     <th className="px-6 py-4">Cashier</th>
                      <th className="px-6 py-4">Item</th>
                      <th className="px-6 py-4">Type</th>
                      <th className="px-6 py-4 text-center">Qty</th>
@@ -485,7 +521,7 @@ const ReportsPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                    {salesData.log.length === 0 ? (
-                     <tr><td colSpan={7} className="p-12 text-center text-gray-400">
+                     <tr><td colSpan={8} className="p-12 text-center text-gray-400">
                         <div className="flex flex-col items-center gap-2">
                            <Filter size={32} className="opacity-20" />
                            <p>No sales records found for this period.</p>
@@ -496,6 +532,9 @@ const ReportsPage: React.FC = () => {
                        <tr key={row.id} className="hover:bg-gray-50">
                           <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
                             {new Date(row.date).toLocaleDateString()} <span className="text-xs text-gray-400">{new Date(row.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          </td>
+                          <td className="px-6 py-3 text-gray-700 font-medium">
+                              {row.cashier}
                           </td>
                           <td className="px-6 py-3">
                             <div className="font-medium text-gray-900">{row.itemName}</div>
@@ -608,8 +647,8 @@ const ReportsPage: React.FC = () => {
             </div>
 
             {/* Receipt Verification Tool */}
-            <div className="bg-white p-4 rounded-xl border border-indigo-100 bg-indigo-50/50 shadow-sm">
-                <form onSubmit={handleVerifyReceipt} className="flex gap-4 items-center">
+            <div className="bg-white p-4 rounded-xl border border-indigo-100 bg-indigo-50/50 shadow-sm flex flex-col md:flex-row gap-4">
+                <form onSubmit={handleVerifyReceipt} className="flex-1 flex gap-4 items-center">
                     <div className="flex-1">
                         <label className="text-xs font-bold text-indigo-900 uppercase mb-1 block">Verify Customer Receipt</label>
                         <div className="relative">
@@ -630,6 +669,24 @@ const ReportsPage: React.FC = () => {
                         Find & Compare
                     </button>
                 </form>
+
+                {/* Cashier Filter for Table */}
+                <div className="w-full md:w-auto">
+                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Filter Transactions By User</label>
+                    <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-gray-200 w-full min-w-[200px]">
+                        <UserIcon size={16} className="text-gray-500" />
+                        <select 
+                            value={selectedCashier}
+                            onChange={(e) => setSelectedCashier(e.target.value)}
+                            className="bg-transparent text-sm font-medium text-gray-700 outline-none w-full cursor-pointer"
+                        >
+                            <option value="All">All Cashiers/Users</option>
+                            {users.map(u => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
             </div>
 
             {/* Transaction History Table */}
@@ -646,6 +703,7 @@ const ReportsPage: React.FC = () => {
                             <tr>
                                 <th className="px-6 py-4">Date</th>
                                 <th className="px-6 py-4">ID</th>
+                                <th className="px-6 py-4">User</th>
                                 <th className="px-6 py-4">Type</th>
                                 <th className="px-6 py-4">Description</th>
                                 <th className="px-6 py-4 text-right">Amount</th>
@@ -655,7 +713,7 @@ const ReportsPage: React.FC = () => {
                         <tbody className="divide-y divide-gray-50">
                             {walletData.log.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-12 text-center text-gray-400">
+                                    <td colSpan={7} className="p-12 text-center text-gray-400">
                                         No transactions found in this period.
                                     </td>
                                 </tr>
@@ -669,6 +727,9 @@ const ReportsPage: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-3 font-mono text-xs text-gray-500">
                                                 {tx.id.substring(0, 8).toUpperCase()}
+                                            </td>
+                                            <td className="px-6 py-3 text-gray-700 font-medium">
+                                                {tx.userName || '-'}
                                             </td>
                                             <td className="px-6 py-3">
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium uppercase ${

@@ -11,7 +11,7 @@ interface CartItem extends InventoryItem {
 }
 
 const PointOfSale: React.FC = () => {
-  const { items, addMovement, addWalletTransaction, getSupplierName, categories } = useInventory();
+  const { items, addMovement, addWalletTransaction, getSupplierName, categories, currentUser } = useInventory();
   
   // State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -129,7 +129,7 @@ const PointOfSale: React.FC = () => {
         total: cartTotal,
         cashReceived: receivedNum,
         change: change,
-        cashier: 'Admin' // Default user
+        cashier: currentUser ? currentUser.name : 'Unknown' // Dynamic Cashier Name
     };
 
     // 3. Process Stock Movements

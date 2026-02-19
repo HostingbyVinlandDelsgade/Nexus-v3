@@ -19,6 +19,17 @@ export interface CompanyInfo {
   website?: string;
 }
 
+export type UserRole = 'admin' | 'cashier';
+
+export interface User {
+  id: string;
+  username: string;
+  password: string; // In a real app, this would be hashed
+  name: string;
+  role: UserRole;
+  lastLogin?: string;
+}
+
 export interface InventoryItem {
   id: string;
   sku: string;
@@ -52,7 +63,8 @@ export interface StockMovement {
   quantity: number;
   date: string;
   reason: string;
-  userId?: string;
+  userId?: string; // ID of the user who performed the action
+  userName?: string; // Name snapshot
 }
 
 export interface Expense {
@@ -79,6 +91,8 @@ export interface WalletTransaction {
   date: string;
   reason: string;
   itemsSnapshot?: ReceiptItem[]; // Store items for receipt reconstruction
+  userId?: string;
+  userName?: string;
 }
 
 export interface DashboardStats {

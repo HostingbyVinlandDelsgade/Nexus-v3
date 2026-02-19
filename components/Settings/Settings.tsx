@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useInventory } from '../../contexts/InventoryContext';
-import { Shield, Lock, Download, Upload, Trash2, AlertTriangle, Check, RefreshCw, Eye, EyeOff, UserCircle, Building2 } from 'lucide-react';
+import { User, UserRole } from '../../types';
+import { Shield, Lock, Download, Upload, Trash2, AlertTriangle, Check, RefreshCw, Eye, EyeOff, UserCircle, Building2, Plus, Edit2, Users } from 'lucide-react';
+import Modal from '../ui/Modal';
 
 const Settings: React.FC = () => {
   const { 
-    updatePasscode, verifyPasscode, updateCredentials,
+    updatePasscode, verifyPasscode,
     exportData, importData, resetSystemData, factoryReset,
-    companyInfo, updateCompanyInfo
+    companyInfo, updateCompanyInfo,
+    users, addUser, updateUser, deleteUser
   } = useInventory();
 
   // Settings Lock State
@@ -14,20 +17,20 @@ const Settings: React.FC = () => {
   const [lockPasscode, setLockPasscode] = useState('');
   const [lockError, setLockError] = useState('');
   
-  // Update Passcode State
+  // Passcode Update State
   const [newPasscode, setNewPasscode] = useState('');
   const [confirmPasscode, setConfirmPasscode] = useState('');
   const [showPasscode, setShowPasscode] = useState(false);
   const [passcodeMessage, setPasscodeMessage] = useState({ type: '', text: '' });
 
-  // Update Login Credentials State
-  const [newUsername, setNewUsername] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [credMessage, setCredMessage] = useState({ type: '', text: '' });
-
   // Company Info State
   const [companyForm, setCompanyForm] = useState(companyInfo);
   const [companyMessage, setCompanyMessage] = useState({ type: '', text: '' });
+
+  // User Management State
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userForm, setUserForm] = useState({ name: '', username: '', password: '', role: 'cashier' as UserRole });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,24 +68,35 @@ const Settings: React.FC = () => {
     setTimeout(() => setPasscodeMessage({ type: '', text: '' }), 3000);
   };
 
-  const handleChangeCredentials = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (newUsername.length < 3 || newPassword.length < 4) {
-          setCredMessage({ type: 'error', text: 'Username (3+) and Password (4+) required.' });
-          return;
-      }
-      updateCredentials(newUsername, newPassword);
-      setCredMessage({ type: 'success', text: 'Login credentials updated!' });
-      setNewUsername('');
-      setNewPassword('');
-      setTimeout(() => setCredMessage({ type: '', text: '' }), 3000);
-  };
-
   const handleUpdateCompanyInfo = (e: React.FormEvent) => {
       e.preventDefault();
       updateCompanyInfo(companyForm);
       setCompanyMessage({ type: 'success', text: 'Company details updated!' });
       setTimeout(() => setCompanyMessage({ type: '', text: '' }), 3000);
+  };
+
+  // --- User Management Handlers ---
+  const handleOpenUserModal = (user?: User) => {
+      if (user) {
+          setEditingUser(user);
+          setUserForm({ name: user.name, username: user.username, password: user.password, role: user.role });
+      } else {
+          setEditingUser(null);
+          setUserForm({ name: '', username: '', password: '', role: 'cashier' });
+      }
+      setIsUserModalOpen(true);
+  };
+
+  const handleUserSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!userForm.name || !userForm.username || !userForm.password) return;
+
+      if (editingUser) {
+          updateUser(editingUser.id, userForm);
+      } else {
+          addUser(userForm);
+      }
+      setIsUserModalOpen(false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,7 +124,7 @@ const Settings: React.FC = () => {
   };
 
   const handleFactoryReset = () => {
-    if (window.confirm('DANGER: Factory Reset will wipe EVERYTHING including your Login, Passcode and Settings.\n\nThe app will revert to its initial "fresh install" state.\n\nAre you absolutely sure?')) {
+    if (window.confirm('DANGER: Factory Reset will wipe EVERYTHING including all Users, Login, Passcode and Settings.\n\nThe app will revert to its initial "fresh install" state.\n\nAre you absolutely sure?')) {
         factoryReset();
     }
   };
@@ -158,8 +172,60 @@ const Settings: React.FC = () => {
         </div>
         <div>
             <h1 className="text-2xl font-bold text-gray-900">System Settings</h1>
-            <p className="text-gray-500 text-sm">Manage security, credentials, and data</p>
+            <p className="text-gray-500 text-sm">Manage users, security, and company details</p>
         </div>
+      </div>
+
+      {/* User Management */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <div>
+                  <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                      <Users size={20} className="text-indigo-600"/>
+                      User Management
+                  </h3>
+                  <p className="text-sm text-gray-500">Manage Admins and Cashiers</p>
+              </div>
+              <button 
+                  onClick={() => handleOpenUserModal()}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
+              >
+                  <Plus size={16} /> Add User
+              </button>
+          </div>
+          <div className="p-0">
+              <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50 text-gray-500">
+                      <tr>
+                          <th className="px-6 py-3">Name</th>
+                          <th className="px-6 py-3">Username</th>
+                          <th className="px-6 py-3">Role</th>
+                          <th className="px-6 py-3">Last Login</th>
+                          <th className="px-6 py-3 text-center">Actions</th>
+                      </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                      {users.map(user => (
+                          <tr key={user.id}>
+                              <td className="px-6 py-3 font-medium text-gray-900">{user.name}</td>
+                              <td className="px-6 py-3 text-gray-600">{user.username}</td>
+                              <td className="px-6 py-3">
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium uppercase ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                                      {user.role}
+                                  </span>
+                              </td>
+                              <td className="px-6 py-3 text-gray-500">
+                                  {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
+                              </td>
+                              <td className="px-6 py-3 text-center">
+                                  <button onClick={() => handleOpenUserModal(user)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded mr-1"><Edit2 size={16}/></button>
+                                  <button onClick={() => { if(confirm(`Delete user ${user.name}?`)) deleteUser(user.id) }} className="text-red-600 hover:bg-red-50 p-1.5 rounded"><Trash2 size={16}/></button>
+                              </td>
+                          </tr>
+                      ))}
+                  </tbody>
+              </table>
+          </div>
       </div>
 
       {/* Company Information */}
@@ -180,7 +246,6 @@ const Settings: React.FC = () => {
                          value={companyForm.name}
                          onChange={(e) => setCompanyForm({...companyForm, name: e.target.value})}
                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                         placeholder="Business Name"
                          required
                      />
                  </div>
@@ -191,7 +256,6 @@ const Settings: React.FC = () => {
                          value={companyForm.address}
                          onChange={(e) => setCompanyForm({...companyForm, address: e.target.value})}
                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                         placeholder="123 Street Name, City"
                          required
                      />
                  </div>
@@ -202,7 +266,6 @@ const Settings: React.FC = () => {
                          value={companyForm.phone}
                          onChange={(e) => setCompanyForm({...companyForm, phone: e.target.value})}
                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                         placeholder="(02) 1234-5678"
                          required
                      />
                  </div>
@@ -213,7 +276,6 @@ const Settings: React.FC = () => {
                          value={companyForm.website || ''}
                          onChange={(e) => setCompanyForm({...companyForm, website: e.target.value})}
                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                         placeholder="www.example.com"
                      />
                  </div>
                  
@@ -234,58 +296,14 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* App Access (Login) */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <UserCircle size={20} className="text-indigo-600"/>
-                    App Access
-                </h3>
-                <p className="text-sm text-gray-500">Update main login credentials</p>
-            </div>
-            <div className="p-6">
-                <form onSubmit={handleChangeCredentials} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">New Username</label>
-                        <input
-                            type="text"
-                            value={newUsername}
-                            onChange={(e) => setNewUsername(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                            placeholder="New username"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                        <input
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                            placeholder="New password"
-                        />
-                    </div>
-                    {credMessage.text && (
-                        <div className={`text-sm flex items-center gap-2 ${credMessage.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
-                            {credMessage.type === 'success' ? <Check size={16}/> : <AlertTriangle size={16}/>}
-                            {credMessage.text}
-                        </div>
-                    )}
-                    <button type="submit" className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
-                        Update Login
-                    </button>
-                </form>
-            </div>
-        </div>
-
         {/* Security (Passcode) */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-6 border-b border-gray-100">
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <Lock size={20} className="text-indigo-600"/>
-                    Security Passcode
+                    Settings Security
                 </h3>
-                <p className="text-sm text-gray-500">Code for accessing Settings</p>
+                <p className="text-sm text-gray-500">Passcode for accessing this page</p>
             </div>
             <div className="p-6">
                 <form onSubmit={handleChangePasscode} className="space-y-4">
@@ -330,50 +348,45 @@ const Settings: React.FC = () => {
                 </form>
             </div>
         </div>
-      </div>
 
-      {/* Data Management Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <RefreshCw size={20} className="text-indigo-600"/>
-              Data Management
-           </h3>
-           <p className="text-sm text-gray-500">Backup and restore your inventory data</p>
-        </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
-                <h4 className="font-semibold text-blue-900 mb-2">Export Data</h4>
-                <p className="text-sm text-blue-700 mb-4">
-                    Download a JSON copy of items, history, and wallet data.
-                    <br/><span className="font-bold text-blue-800">Note: Login & Passcode are excluded for security.</span>
-                </p>
-                <button 
-                    type="button"
-                    onClick={exportData}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm"
-                >
-                    <Download size={16} /> Download Backup
-                </button>
+        {/* Data Management Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <RefreshCw size={20} className="text-indigo-600"/>
+                    Data Backup
+                </h3>
+                <p className="text-sm text-gray-500">Backup and restore system data</p>
             </div>
-            <div className="p-4 rounded-xl bg-purple-50 border border-purple-100">
-                <h4 className="font-semibold text-purple-900 mb-2">Import Data</h4>
-                <p className="text-sm text-purple-700 mb-4">Restore your system from a backup file (JSON).</p>
-                <div className="flex gap-2">
-                    <input 
-                        type="file" 
-                        accept=".json" 
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden" 
-                        id="import-file"
-                    />
-                    <label 
-                        htmlFor="import-file"
-                        className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm text-sm"
+            <div className="p-6 space-y-4">
+                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
+                    <h4 className="font-semibold text-blue-900 mb-2">Export Data</h4>
+                    <button 
+                        type="button"
+                        onClick={exportData}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm w-full justify-center"
                     >
-                        <Upload size={16} /> Select File
-                    </label>
+                        <Download size={16} /> Download JSON
+                    </button>
+                </div>
+                <div className="p-4 rounded-xl bg-purple-50 border border-purple-100">
+                    <h4 className="font-semibold text-purple-900 mb-2">Import Data</h4>
+                    <div className="flex gap-2">
+                        <input 
+                            type="file" 
+                            accept=".json" 
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            className="hidden" 
+                            id="import-file"
+                        />
+                        <label 
+                            htmlFor="import-file"
+                            className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm text-sm w-full justify-center"
+                        >
+                            <Upload size={16} /> Select File
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -391,8 +404,8 @@ const Settings: React.FC = () => {
         <div className="p-6 space-y-4 divide-y divide-gray-100">
             <div className="flex items-center justify-between pb-4">
                 <div>
-                    <h4 className="font-semibold text-gray-800">Delete System Data</h4>
-                    <p className="text-sm text-gray-500">Removes all inventory, suppliers, and movements. Keeps settings & passcode.</p>
+                    <h4 className="font-semibold text-gray-800">Clear Inventory Data</h4>
+                    <p className="text-sm text-gray-500">Removes inventory, suppliers, movements. Keeps settings & users.</p>
                 </div>
                 <button 
                     type="button"
@@ -406,7 +419,7 @@ const Settings: React.FC = () => {
              <div className="flex items-center justify-between pt-4">
                 <div>
                     <h4 className="font-semibold text-gray-800">Factory Reset</h4>
-                    <p className="text-sm text-gray-500">Wipes all data and resets settings/passcode to default.</p>
+                    <p className="text-sm text-gray-500">Wipes ALL data including Users and resets to fresh install.</p>
                 </div>
                 <button 
                     type="button"
@@ -418,6 +431,64 @@ const Settings: React.FC = () => {
             </div>
         </div>
       </div>
+
+      {/* User Modal */}
+      <Modal
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
+        title={editingUser ? "Edit User" : "Add New User"}
+      >
+          <form onSubmit={handleUserSubmit} className="space-y-4">
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <input
+                      type="text"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      value={userForm.name}
+                      onChange={e => setUserForm({...userForm, name: e.target.value})}
+                      required
+                  />
+              </div>
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                  <input
+                      type="text"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      value={userForm.username}
+                      onChange={e => setUserForm({...userForm, username: e.target.value})}
+                      required
+                  />
+              </div>
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                  <input
+                      type="text" // Visible for admin convenience in this demo
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      value={userForm.password}
+                      onChange={e => setUserForm({...userForm, password: e.target.value})}
+                      required
+                  />
+              </div>
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <select
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                      value={userForm.role}
+                      onChange={e => setUserForm({...userForm, role: e.target.value as UserRole})}
+                  >
+                      <option value="cashier">Cashier (Restricted)</option>
+                      <option value="admin">Administrator (Full Access)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                      {userForm.role === 'cashier' ? 'Cashiers can only access POS and Inventory (Read-only).' : 'Admins have full access to Reports, Settings, and Suppliers.'}
+                  </p>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                  <button type="button" onClick={() => setIsUserModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                  <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Save User</button>
+              </div>
+          </form>
+      </Modal>
     </div>
   );
 };

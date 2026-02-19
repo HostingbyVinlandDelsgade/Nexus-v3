@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { InventoryItem, Supplier, StockMovement, MovementType, Expense, WalletTransaction, WalletTransactionType, ReceiptItem, CompanyInfo } from '../types';
+import { InventoryItem, Supplier, StockMovement, MovementType, Expense, WalletTransaction, WalletTransactionType, ReceiptItem, CompanyInfo, User, UserRole } from '../types';
 
 interface InventoryContextType {
   items: InventoryItem[];
@@ -10,6 +10,8 @@ interface InventoryContextType {
   walletBalance: number;
   categories: string[];
   companyInfo: CompanyInfo;
+  users: User[];
+  currentUser: User | null;
   
   addItem: (item: Omit<InventoryItem, 'id' | 'lastUpdated'>) => void;
   updateItem: (id: string, updates: Partial<InventoryItem>) => void;
@@ -30,13 +32,16 @@ interface InventoryContextType {
 
   getSupplierName: (id: string) => string;
   
-  // Settings & Data Management
-  isAuthenticated: boolean;
+  // Settings & User Management
   login: (username: string, password: string) => boolean;
   logout: () => void;
-  updateCredentials: (username: string, password: string) => void;
-  verifyPasscode: (code: string) => boolean;
+  verifyPasscode: (code: string) => boolean; // Admin passcode for high-level overrides
   updatePasscode: (newCode: string) => void;
+  
+  addUser: (user: Omit<User, 'id'>) => void;
+  updateUser: (id: string, updates: Partial<User>) => void;
+  deleteUser: (id: string) => void;
+
   exportData: () => void;
   importData: (fileContent: string) => boolean;
   resetSystemData: () => void;
@@ -47,7 +52,6 @@ const InventoryContext = createContext<InventoryContextType | undefined>(undefin
 
 // Default Data
 const DEFAULT_PASSCODE = '0000';
-const DEFAULT_CREDS = { username: 'admin', password: 'password' };
 const DEFAULT_CATEGORIES = ['General', 'Electronics', 'Furniture', 'Stationery', 'Raw Materials', 'Food'];
 const DEFAULT_COMPANY_INFO: CompanyInfo = {
   name: 'Nexus Inventory',
@@ -56,6 +60,11 @@ const DEFAULT_COMPANY_INFO: CompanyInfo = {
   email: 'admin@nexusinv.com',
   website: 'www.nexusinv.com'
 };
+
+const INITIAL_USERS: User[] = [
+    { id: 'admin1', username: 'admin', password: 'password', name: 'System Admin', role: 'admin' },
+    { id: 'cashier1', username: 'cashier', password: '123', name: 'John Doe', role: 'cashier' }
+];
 
 // --- TEST DATA GENERATION ---
 const SUP_ID_1 = 'sup_tech_ph';
@@ -233,9 +242,14 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     return saved || DEFAULT_PASSCODE;
   });
 
-  const [credentials, setCredentials] = useState(() => {
-    const saved = localStorage.getItem('nexus_credentials');
-    return saved ? JSON.parse(saved) : DEFAULT_CREDS;
+  const [users, setUsers] = useState<User[]>(() => {
+    const saved = localStorage.getItem('nexus_users');
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
+  });
+
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+      const saved = localStorage.getItem('nexus_current_user');
+      return saved ? JSON.parse(saved) : null;
   });
 
   const [categories, setCategories] = useState<string[]>(() => {
@@ -247,8 +261,6 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     const saved = localStorage.getItem('nexus_company_info');
     return saved ? JSON.parse(saved) : DEFAULT_COMPANY_INFO;
   });
-
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Calculate current wallet balance derived from history
   const walletBalance = walletTransactions.reduce((acc, tx) => {
@@ -266,10 +278,17 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     localStorage.setItem('nexus_expenses', JSON.stringify(expenses));
     localStorage.setItem('nexus_wallet', JSON.stringify(walletTransactions));
     localStorage.setItem('nexus_passcode', passcode);
-    localStorage.setItem('nexus_credentials', JSON.stringify(credentials));
+    localStorage.setItem('nexus_users', JSON.stringify(users));
     localStorage.setItem('nexus_categories', JSON.stringify(categories));
     localStorage.setItem('nexus_company_info', JSON.stringify(companyInfo));
-  }, [items, suppliers, movements, expenses, walletTransactions, passcode, credentials, categories, companyInfo]);
+    
+    if (currentUser) {
+        localStorage.setItem('nexus_current_user', JSON.stringify(currentUser));
+    } else {
+        localStorage.removeItem('nexus_current_user');
+    }
+
+  }, [items, suppliers, movements, expenses, walletTransactions, passcode, users, categories, companyInfo, currentUser]);
 
   // --- CRUD Operations ---
 
@@ -322,7 +341,9 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     const movement = {
       ...newMovement,
       id: Math.random().toString(36).substr(2, 9),
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      userId: currentUser?.id,
+      userName: currentUser?.name
     };
     setMovements(prev => [movement, ...prev]);
 
@@ -357,7 +378,9 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
          amount,
          type,
          reason,
-         itemsSnapshot
+         itemsSnapshot,
+         userId: currentUser?.id,
+         userName: currentUser?.name
      };
      setWalletTransactions(prev => [tx, ...prev]);
   };
@@ -374,8 +397,6 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   const deleteExpense = (id: string) => {
-    // Note: Deleting an expense record does NOT automatically refund the wallet 
-    // to maintain strict audit trails. You would need to add a "Deposit" correction manually if needed.
     setExpenses(prev => prev.filter(e => e.id !== id));
   };
 
@@ -387,22 +408,45 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     return suppliers.find(s => s.id === id)?.name || 'Unknown Supplier';
   };
 
-  // --- Settings & Data Management ---
+  // --- Settings & User Management ---
 
   const login = (u: string, p: string) => {
-    if (u === credentials.username && p === credentials.password) {
-        setIsAuthenticated(true);
+    const user = users.find(usr => usr.username === u && usr.password === p);
+    if (user) {
+        // Update last login
+        const updatedUser = { ...user, lastLogin: new Date().toISOString() };
+        updateUser(user.id, { lastLogin: new Date().toISOString() });
+        setCurrentUser(updatedUser);
         return true;
     }
     return false;
   };
 
   const logout = () => {
-    setIsAuthenticated(false);
+    setCurrentUser(null);
   };
 
-  const updateCredentials = (u: string, p: string) => {
-    setCredentials({ username: u, password: p });
+  const addUser = (userData: Omit<User, 'id'>) => {
+      const newUser = {
+          ...userData,
+          id: Math.random().toString(36).substr(2, 9)
+      };
+      setUsers(prev => [...prev, newUser]);
+  };
+
+  const updateUser = (id: string, updates: Partial<User>) => {
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+      if (currentUser && currentUser.id === id) {
+          setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+      }
+  };
+
+  const deleteUser = (id: string) => {
+      if (currentUser?.id === id) {
+          alert("You cannot delete your own account while logged in.");
+          return;
+      }
+      setUsers(prev => prev.filter(u => u.id !== id));
   };
 
   const verifyPasscode = (code: string) => {
@@ -415,7 +459,6 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const exportData = () => {
     // SECURITY: We explicitly do NOT include credentials or passcode in the export.
-    // This allows the user to share the JSON backup without compromising access control.
     const data = {
       items,
       suppliers,
@@ -425,7 +468,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       categories,
       companyInfo,
       exportedAt: new Date().toISOString(),
-      version: '1.4' // Version bump
+      version: '1.5' // Version bump
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -441,11 +484,9 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     try {
       const data = JSON.parse(fileContent);
       
-      // Basic validation
       if (!data || typeof data !== 'object') return false;
 
       // SECURITY: Explicitly only import business data.
-      // We do NOT check for 'credentials' or 'passcode' fields to prevent malicious overrides.
       if (Array.isArray(data.items)) setItems(data.items);
       if (Array.isArray(data.suppliers)) setSuppliers(data.suppliers);
       if (Array.isArray(data.movements)) setMovements(data.movements);
@@ -467,31 +508,18 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     setMovements([]);
     setExpenses([]);
     setWalletTransactions([]);
-    // Do not reset Categories or Company Info on data wipe, usually they are config
   };
 
   const factoryReset = () => {
-    // Block the useEffect from saving current state back to storage
     isResettingRef.current = true;
-    
-    // Clear all storage keys explicitly
-    localStorage.removeItem('nexus_items');
-    localStorage.removeItem('nexus_suppliers');
-    localStorage.removeItem('nexus_movements');
-    localStorage.removeItem('nexus_expenses');
-    localStorage.removeItem('nexus_wallet');
-    localStorage.removeItem('nexus_passcode');
-    localStorage.removeItem('nexus_credentials');
-    localStorage.removeItem('nexus_categories');
-    localStorage.removeItem('nexus_company_info');
-    
-    // Force reload to re-initialize from code constants (fresh start)
+    localStorage.clear();
     window.location.reload();
   };
 
   return (
     <InventoryContext.Provider value={{ 
       items, suppliers, movements, expenses, walletTransactions, walletBalance, categories, companyInfo,
+      users, currentUser,
       addItem, updateItem, deleteItem, 
       addSupplier, updateSupplier, 
       addMovement, 
@@ -500,9 +528,10 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       addCategory, deleteCategory,
       updateCompanyInfo,
       getSupplierName,
-      isAuthenticated, login, logout, updateCredentials,
+      login, logout, addUser, updateUser, deleteUser,
       verifyPasscode, updatePasscode,
-      exportData, importData, resetSystemData, factoryReset
+      exportData, importData, resetSystemData, factoryReset,
+      isAuthenticated: !!currentUser
     }}>
       {children}
     </InventoryContext.Provider>
