@@ -4,7 +4,7 @@ import {
   BarChart3, TrendingUp, DollarSign, Package, Calendar, 
   PieChart, ChevronLeft, ChevronRight, Filter, CalendarDays,
   Plus, Trash2, Wallet, ArrowDownLeft, ArrowUpRight, Minus,
-  AlertTriangle, PiggyBank, Receipt
+  AlertTriangle, PiggyBank, Receipt, Search
 } from 'lucide-react';
 import { MovementType, WalletTransactionType } from '../../types';
 import Modal from '../ui/Modal';
@@ -29,7 +29,8 @@ const ReportsPage: React.FC = () => {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [walletForm, setWalletForm] = useState({ type: 'WITHDRAWAL' as WalletTransactionType, amount: '', reason: '' });
 
-  // Receipt Modal State
+  // Receipt Verification State
+  const [verifyId, setVerifyId] = useState('');
   const [receiptData, setReceiptData] = useState<any>(null);
 
   // --- Date Logic Helpers ---
@@ -143,19 +144,38 @@ const ReportsPage: React.FC = () => {
     setIsWalletModalOpen(false);
   };
 
-  const handleViewReceipt = (tx: any) => {
-      if (!tx.itemsSnapshot) return;
-      
-      const data = {
-          transactionId: tx.id.substring(0,6).toUpperCase(),
+  const formatReceiptForView = (tx: any) => {
+      if (!tx.itemsSnapshot) return null;
+      return {
+          transactionId: tx.id.toUpperCase(), // Ensure we show the stored ID
           date: tx.date,
           items: tx.itemsSnapshot,
-          subtotal: tx.amount, // Approximate for history
+          subtotal: tx.amount, 
           total: tx.amount,
-          cashReceived: tx.amount, // No record of exact change in history
+          cashReceived: tx.amount, // History doesn't store exact cash tendered, assume exact
           change: 0
       };
-      setReceiptData(data);
+  };
+
+  const handleViewReceipt = (tx: any) => {
+      const data = formatReceiptForView(tx);
+      if(data) setReceiptData(data);
+  };
+
+  const handleVerifyReceipt = (e: React.FormEvent) => {
+      e.preventDefault();
+      if(!verifyId.trim()) return;
+
+      const tx = walletTransactions.find(t => 
+          t.id.toUpperCase() === verifyId.trim().toUpperCase()
+      );
+
+      if (tx && tx.itemsSnapshot) {
+          handleViewReceipt(tx);
+          setVerifyId('');
+      } else {
+          alert("Transaction ID not found or has no receipt data.");
+      }
   };
 
   // --- Calculations: Sales & Profit & Expenses ---
@@ -587,6 +607,31 @@ const ReportsPage: React.FC = () => {
                  </div>
             </div>
 
+            {/* Receipt Verification Tool */}
+            <div className="bg-white p-4 rounded-xl border border-indigo-100 bg-indigo-50/50 shadow-sm">
+                <form onSubmit={handleVerifyReceipt} className="flex gap-4 items-center">
+                    <div className="flex-1">
+                        <label className="text-xs font-bold text-indigo-900 uppercase mb-1 block">Verify Customer Receipt</label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" size={18}/>
+                            <input 
+                                type="text" 
+                                value={verifyId}
+                                onChange={(e) => setVerifyId(e.target.value)}
+                                placeholder="Enter Transaction ID (e.g. 7X9F)"
+                                className="w-full pl-10 pr-4 py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                            />
+                        </div>
+                    </div>
+                    <button 
+                        type="submit"
+                        className="px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors self-end h-[42px]"
+                    >
+                        Find & Compare
+                    </button>
+                </form>
+            </div>
+
             {/* Transaction History Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
@@ -600,6 +645,7 @@ const ReportsPage: React.FC = () => {
                         <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
                             <tr>
                                 <th className="px-6 py-4">Date</th>
+                                <th className="px-6 py-4">ID</th>
                                 <th className="px-6 py-4">Type</th>
                                 <th className="px-6 py-4">Description</th>
                                 <th className="px-6 py-4 text-right">Amount</th>
@@ -609,7 +655,7 @@ const ReportsPage: React.FC = () => {
                         <tbody className="divide-y divide-gray-50">
                             {walletData.log.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="p-12 text-center text-gray-400">
+                                    <td colSpan={6} className="p-12 text-center text-gray-400">
                                         No transactions found in this period.
                                     </td>
                                 </tr>
@@ -620,6 +666,9 @@ const ReportsPage: React.FC = () => {
                                         <tr key={tx.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
                                                 {new Date(tx.date).toLocaleDateString()} <span className="text-xs text-gray-400">{new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                            </td>
+                                            <td className="px-6 py-3 font-mono text-xs text-gray-500">
+                                                {tx.id.substring(0, 8).toUpperCase()}
                                             </td>
                                             <td className="px-6 py-3">
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium uppercase ${

@@ -110,7 +110,10 @@ const PointOfSale: React.FC = () => {
   const handleCheckout = () => {
     if (!canCheckout) return;
 
-    // 1. Prepare Data for Receipt & History
+    // 1. Generate Consistent ID
+    const transId = Math.random().toString(36).substr(2, 6).toUpperCase();
+
+    // 2. Prepare Data for Receipt & History
     const receiptItems = cart.map(item => ({
         name: item.name,
         quantity: item.cartQuantity,
@@ -119,7 +122,7 @@ const PointOfSale: React.FC = () => {
     }));
 
     const transactionData = {
-        transactionId: Math.random().toString(36).substr(2, 6).toUpperCase(),
+        transactionId: transId,
         date: new Date().toISOString(),
         items: receiptItems,
         subtotal: cartTotal,
@@ -129,7 +132,7 @@ const PointOfSale: React.FC = () => {
         cashier: 'Admin' // Default user
     };
 
-    // 2. Process Stock Movements
+    // 3. Process Stock Movements
     cart.forEach(cartItem => {
       addMovement({
         itemId: cartItem.id,
@@ -139,15 +142,16 @@ const PointOfSale: React.FC = () => {
       });
     });
 
-    // 3. Process Wallet Transaction (Pass itemsSnapshot)
+    // 4. Process Wallet Transaction (Pass itemsSnapshot and CUSTOM ID)
     addWalletTransaction(
         cartTotal,
         'SALE',
         `POS Sale: ${cart.length} items`,
-        receiptItems // New: Pass items for history viewing
+        receiptItems, // Items Snapshot
+        transId // Custom ID linked to receipt
     );
 
-    // 4. Update UI & Show Receipt
+    // 5. Update UI & Show Receipt
     setLastTransaction(transactionData);
     setShowReceipt(true);
     

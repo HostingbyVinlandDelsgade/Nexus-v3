@@ -21,7 +21,7 @@ interface InventoryContextType {
   addExpense: (expense: Omit<Expense, 'id'>) => void;
   deleteExpense: (id: string) => void;
   
-  addWalletTransaction: (amount: number, type: WalletTransactionType, reason: string, itemsSnapshot?: ReceiptItem[]) => void;
+  addWalletTransaction: (amount: number, type: WalletTransactionType, reason: string, itemsSnapshot?: ReceiptItem[], customId?: string) => void;
   
   addCategory: (category: string) => void;
   deleteCategory: (category: string) => void;
@@ -350,9 +350,9 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   // Wallet Logic
-  const addWalletTransaction = (amount: number, type: WalletTransactionType, reason: string, itemsSnapshot?: ReceiptItem[]) => {
+  const addWalletTransaction = (amount: number, type: WalletTransactionType, reason: string, itemsSnapshot?: ReceiptItem[], customId?: string) => {
      const tx: WalletTransaction = {
-         id: Math.random().toString(36).substr(2, 9),
+         id: customId || Math.random().toString(36).substr(2, 9),
          date: new Date().toISOString(),
          amount,
          type,
