@@ -361,7 +361,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
 
   // --- RENDER: Main Item Form ---
   return (
-    <div className="flex flex-col max-h-[80vh] md:h-[600px]">
+    <div className="flex flex-col h-auto max-h-[85vh]">
       {/* Tabs Navigation */}
       <div className="flex border-b border-gray-100 mb-6">
         <button
@@ -396,8 +396,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
       <div className="flex-1 overflow-y-auto pr-2">
         {/* DETAILS TAB */}
         {activeTab === 'details' && (
-            <form id="item-form" onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <form id="item-form" onSubmit={handleSubmit} className="space-y-6 pb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-6">
                 
                 {/* Image URLs - Summary View */}
                 <div className="col-span-2">
@@ -526,8 +526,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* BUYING SECTION */}
-                <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                     <h3 className="col-span-1 md:col-span-2 text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-1 flex items-center gap-2">
+                <div className="col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                     <h3 className="col-span-1 lg:col-span-2 text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-1 flex items-center gap-2">
                         Buying Information
                      </h3>
                      
@@ -574,7 +574,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* SELLING SECTION */}
-                <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-1">
                         <label className="block text-sm font-medium text-gray-700">Retail Price (Selling)</label>
                         <div className="relative">

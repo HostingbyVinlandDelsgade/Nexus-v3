@@ -377,7 +377,7 @@ const PointOfSale: React.FC = () => {
           )}
         </div>
         {/* Mobile Floating Cart Button */}
-        <div className="absolute bottom-20 left-4 right-4 lg:hidden z-30">
+        <div className="fixed bottom-24 left-4 right-4 lg:hidden z-50">
             <button 
                 onClick={() => setMobileView('cart')}
                 className="w-full bg-indigo-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between font-bold"
