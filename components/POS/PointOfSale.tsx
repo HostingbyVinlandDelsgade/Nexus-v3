@@ -32,6 +32,9 @@ const PointOfSale: React.FC = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<any>(null);
 
+  // Mobile View State
+  const [mobileView, setMobileView] = useState<'products' | 'cart'>('products');
+
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.sku.toLowerCase().includes(searchTerm.toLowerCase());
@@ -160,6 +163,10 @@ const PointOfSale: React.FC = () => {
     setAmountReceived('');
     setIsCheckoutSuccess(true);
     setTimeout(() => setIsCheckoutSuccess(false), 3000);
+    // Switch back to products view on mobile after successful checkout
+    if (window.innerWidth < 1024) {
+        setMobileView('products');
+    }
   };
 
   const handleViewDetails = (e: React.MouseEvent, item: InventoryItem) => {
@@ -192,10 +199,10 @@ const PointOfSale: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] lg:h-screen gap-6 overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] lg:h-screen gap-6 overflow-hidden relative">
       
       {/* LEFT: Product Browser */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className={`flex-1 flex flex-col min-w-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden ${mobileView === 'cart' ? 'hidden lg:flex' : 'flex'}`}>
         {/* Header / Search */}
         <div className="p-4 border-b border-gray-100 space-y-4">
           <div className="flex items-center justify-between">
@@ -228,7 +235,7 @@ const PointOfSale: React.FC = () => {
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50">
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50 pb-20 lg:pb-4">
           {filteredItems.length === 0 ? (
              <div className="h-full flex flex-col items-center justify-center text-gray-400">
                 <PackageX size={48} className="mb-2 opacity-50"/>
@@ -314,13 +321,35 @@ const PointOfSale: React.FC = () => {
             </div>
           )}
         </div>
+        {/* Mobile Floating Cart Button */}
+        <div className="absolute bottom-4 left-4 right-4 lg:hidden z-30">
+            <button 
+                onClick={() => setMobileView('cart')}
+                className="w-full bg-indigo-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between font-bold"
+            >
+                <div className="flex items-center gap-2">
+                    <ShoppingCart size={20} />
+                    <span>View Cart</span>
+                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                        {cart.reduce((acc, i) => acc + i.cartQuantity, 0)} items
+                    </span>
+                </div>
+                <span>₱{cartTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            </button>
+        </div>
       </div>
 
       {/* RIGHT: Cart & Payment (Fixed) */}
-      <div className="w-full lg:w-96 flex flex-col bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full">
+      <div className={`w-full lg:w-96 flex flex-col bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full ${mobileView === 'products' ? 'hidden lg:flex' : 'flex'}`}>
         {/* Cart Header */}
         <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
            <div className="flex items-center gap-2 text-gray-800">
+             <button 
+                onClick={() => setMobileView('products')}
+                className="lg:hidden p-1 mr-2 hover:bg-gray-200 rounded-full"
+             >
+                <ChevronLeft size={20} />
+             </button>
              <ShoppingCart size={20} />
              <span className="font-bold">Current Order</span>
            </div>

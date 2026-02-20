@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { InventoryItem, MovementType } from '../../types';
 import { useInventory } from '../../contexts/InventoryContext';
-import { Search, Loader2, Sparkles, Save, History, Box, ArrowRightLeft, Settings, Plus, Trash2, ChevronLeft, Image as ImageIcon, ExternalLink, X } from 'lucide-react';
+import { Search, Loader2, Sparkles, Save, History, Box, ArrowRightLeft, Settings, Plus, Trash2, ChevronLeft, Image as ImageIcon, ExternalLink, X, Upload } from 'lucide-react';
 import SupplierSelectionModal from '../Suppliers/SupplierSelectionModal';
 import { generateItemDescription } from '../../services/geminiService';
 
@@ -153,6 +153,26 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
     const newImages = [...images];
     newImages[index] = processedUrl;
     setImages(newImages);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        // Add to images
+        // If the last image is empty, replace it, otherwise append
+        const newImages = [...images];
+        if (newImages.length > 0 && newImages[newImages.length - 1] === '') {
+            newImages[newImages.length - 1] = base64String;
+        } else {
+            newImages.push(base64String);
+        }
+        setImages(newImages);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const addImageField = () => {
@@ -312,13 +332,19 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                     ))}
                 </div>
                 
-                <button 
-                    type="button" 
-                    onClick={addImageField} 
-                    className="mt-4 w-full py-3 border-2 border-dashed border-indigo-200 rounded-xl text-indigo-600 font-medium hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center justify-center gap-2"
-                >
-                    <Plus size={18} /> Add Another Image
-                </button>
+                <div className="flex gap-2 mt-4">
+                    <button 
+                        type="button" 
+                        onClick={addImageField} 
+                        className="flex-1 py-3 border-2 border-dashed border-indigo-200 rounded-xl text-indigo-600 font-medium hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center justify-center gap-2"
+                    >
+                        <Plus size={18} /> Add URL
+                    </button>
+                    <label className="flex-1 py-3 border-2 border-dashed border-indigo-200 rounded-xl text-indigo-600 font-medium hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                        <Upload size={18} /> Upload
+                    </label>
+                </div>
             </div>
             
             <div className="pt-4 mt-auto border-t border-gray-100">
@@ -371,7 +397,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
         {/* DETAILS TAB */}
         {activeTab === 'details' && (
             <form id="item-form" onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
                 {/* Image URLs - Summary View */}
                 <div className="col-span-2">
@@ -500,7 +526,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* BUYING SECTION */}
-                <div className="col-span-2 grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
                      <h3 className="col-span-2 text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-1 flex items-center gap-2">
                         Buying Information
                      </h3>
@@ -548,7 +574,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* SELLING SECTION */}
-                <div className="col-span-2 grid grid-cols-2 gap-4">
+                <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Retail Price (Selling)</label>
                         <div className="relative">
@@ -670,7 +696,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                         <ArrowRightLeft size={16} />
                         Update Stock Level
                     </h3>
-                    <form onSubmit={handleStockAdjustment} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <form onSubmit={handleStockAdjustment} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
                          <div className="md:col-span-1">
                             <label className="block text-xs font-medium text-gray-500 mb-1">Action</label>
                             <select 
