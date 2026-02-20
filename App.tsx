@@ -120,6 +120,7 @@ const App = () => {
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 flex justify-around items-center px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        {!isCashier && (
         <button 
             onClick={() => setCurrentView('dashboard')}
             className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'dashboard' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
@@ -127,6 +128,7 @@ const App = () => {
             <LayoutDashboard size={20} />
             <span className="text-[10px] font-medium mt-1">Home</span>
         </button>
+        )}
         <button 
             onClick={() => setCurrentView('pos')}
             className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'pos' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
@@ -173,13 +175,13 @@ const App = () => {
                   </button>
               </div>
               <nav className="space-y-2">
-                  <button onClick={() => { setCurrentView('dashboard'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><LayoutDashboard size={20}/> Dashboard</button>
+                  {!isCashier && <button onClick={() => { setCurrentView('dashboard'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><LayoutDashboard size={20}/> Dashboard</button>}
                   <button onClick={() => { setCurrentView('pos'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><ShoppingCart size={20}/> Point of Sale</button>
                   <button onClick={() => { setCurrentView('inventory'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><Package size={20}/> Inventory</button>
-                  <button onClick={() => { setCurrentView('suppliers'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><Users size={20}/> Suppliers</button>
-                  <button onClick={() => { setCurrentView('movements'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><History size={20}/> Movements</button>
-                  <button onClick={() => { setCurrentView('reports'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><BarChart3 size={20}/> Reports</button>
-                  <button onClick={() => { setCurrentView('settings'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><SettingsIcon size={20}/> Settings</button>
+                  {!isCashier && <button onClick={() => { setCurrentView('suppliers'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><Users size={20}/> Suppliers</button>}
+                  {!isCashier && <button onClick={() => { setCurrentView('movements'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><History size={20}/> Movements</button>}
+                  {!isCashier && <button onClick={() => { setCurrentView('reports'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><BarChart3 size={20}/> Reports</button>}
+                  {!isCashier && <button onClick={() => { setCurrentView('settings'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><SettingsIcon size={20}/> Settings</button>}
               </nav>
               <div className="mt-auto pt-4 border-t border-slate-800">
                   <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-red-400"><LogOut size={20}/> Logout</button>
