@@ -8,7 +8,7 @@ export const generateInventoryInsight = async (
   items: InventoryItem[], 
   movements: StockMovement[]
 ): Promise<string> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) return "API Key not configured. Unable to generate insights.";
 
   const lowStock = items.filter(i => i.quantity <= i.minStockLevel);
@@ -44,7 +44,7 @@ export const generateInventoryInsight = async (
 };
 
 export const generateItemDescription = async (name: string, category: string): Promise<string> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) return "";
 
   try {
