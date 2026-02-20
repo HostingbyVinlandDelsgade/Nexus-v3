@@ -397,7 +397,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
         {/* DETAILS TAB */}
         {activeTab === 'details' && (
             <form id="item-form" onSubmit={handleSubmit} className="space-y-6 pb-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-6">
+            <div className="grid grid-cols-2 gap-4">
                 
                 {/* Image URLs - Summary View */}
                 <div className="col-span-2">
@@ -466,7 +466,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* SKU */}
-                <div className="space-y-1">
+                <div className="col-span-1 space-y-1">
                 <label className="block text-sm font-medium text-gray-700">SKU *</label>
                 <input
                     required
@@ -479,7 +479,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* Category with Manage Button */}
-                <div className="space-y-1">
+                <div className="col-span-1 space-y-1">
                     <div className="flex justify-between items-center">
                         <label className="block text-sm font-medium text-gray-700">Category</label>
                         <button 
@@ -487,7 +487,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                             onClick={() => setIsManagingCategories(true)}
                             className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
                         >
-                            <Settings size={12} /> Manage
+                            <Settings size={12} />
                         </button>
                     </div>
                     <select
@@ -520,63 +520,64 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                         className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap"
                     >
                         <Search size={18} />
-                        <span>Find Supplier</span>
+                        <span>Find</span>
                     </button>
                 </div>
                 </div>
 
                 {/* BUYING SECTION */}
-                <div className="col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                     <h3 className="col-span-1 lg:col-span-2 text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-1 flex items-center gap-2">
+                <div className="col-span-2 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                     <h3 className="text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-3 flex items-center gap-2">
                         Buying Information
                      </h3>
                      
-                     <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">Unit Cost (Buying Price)</label>
-                        <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-sans">₱</span>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={unitCost}
-                                onChange={e => setUnitCost(e.target.value)}
-                                className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="0.00"
-                            />
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-1 space-y-1">
+                            <label className="block text-sm font-medium text-gray-700">Unit Cost</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-sans">₱</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={unitCost}
+                                    onChange={e => setUnitCost(e.target.value)}
+                                    className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    placeholder="0.00"
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">Unit Type</label>
-                        <select
-                            value={costUnit}
-                            onChange={e => setCostUnit(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
-                        >
-                            <option value="pcs">pcs</option>
-                            <option value="box">box</option>
-                            <option value="sack">sack</option>
-                            <option value="kg">kg</option>
-                            <option value="pack">pack</option>
-                            <option value="roll">roll</option>
-                            <option value="unit">unit</option>
-                            <option value="set">set</option>
-                            <option value="pair">pair</option>
-                            <option value="bundle">bundle</option>
-                            <option value="can">can</option>
-                            <option value="bottle">bottle</option>
-                            <option value="liter">liter</option>
-                            <option value="meter">meter</option>
-                        </select>
-                        <p className="text-[10px] text-gray-500 mt-0.5">Select the unit measure (e.g. sack, box)</p>
-                    </div>
+                        <div className="col-span-1 space-y-1">
+                            <label className="block text-sm font-medium text-gray-700">Unit Type</label>
+                            <select
+                                value={costUnit}
+                                onChange={e => setCostUnit(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                            >
+                                <option value="pcs">pcs</option>
+                                <option value="box">box</option>
+                                <option value="sack">sack</option>
+                                <option value="kg">kg</option>
+                                <option value="pack">pack</option>
+                                <option value="roll">roll</option>
+                                <option value="unit">unit</option>
+                                <option value="set">set</option>
+                                <option value="pair">pair</option>
+                                <option value="bundle">bundle</option>
+                                <option value="can">can</option>
+                                <option value="bottle">bottle</option>
+                                <option value="liter">liter</option>
+                                <option value="meter">meter</option>
+                            </select>
+                        </div>
+                     </div>
                 </div>
 
                 {/* SELLING SECTION */}
-                <div className="col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">Retail Price (Selling)</label>
+                <div className="col-span-2 grid grid-cols-2 gap-4">
+                    <div className="col-span-1 space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">Retail Price</label>
                         <div className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-sans">₱</span>
                                 <input
@@ -591,8 +592,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                         </div>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">Wholesale Price (Selling)</label>
+                    <div className="col-span-1 space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">Wholesale</label>
                         <div className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-sans">₱</span>
                                 <input
@@ -609,8 +610,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* Min Stock */}
-                 <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">Min. Stock Level</label>
+                 <div className="col-span-1 space-y-1">
+                        <label className="block text-sm font-medium text-gray-700 truncate" title="Minimum Stock Level">Min Stock</label>
                         <input
                             type="number"
                             min="0"
@@ -621,10 +622,9 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
                 
                 {/* Quantity */}
-                <div className="space-y-1">
+                <div className="col-span-1 space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
                         Quantity 
-                        {initialData && <span className="text-xs font-normal text-gray-500 ml-2">(Use 'Stock Management' to adjust)</span>}
                     </label>
                     <input
                         type="number"
@@ -637,7 +637,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                  {/* Movement Speed */}
-                 <div className="space-y-1">
+                 <div className="col-span-2 space-y-1">
                     <label className="block text-sm font-medium text-gray-700">Movement Speed</label>
                     <select
                         value={movementSpeed}

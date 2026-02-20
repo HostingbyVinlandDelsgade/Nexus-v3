@@ -164,7 +164,7 @@ const App = () => {
       </nav>
 
       {/* Mobile Sidebar Drawer (Hidden by default) */}
-      <div id="mobile-sidebar" className="fixed inset-0 z-50 bg-black/50 hidden md:hidden" onClick={(e) => {
+      <div id="mobile-sidebar" className="fixed inset-0 z-[100] bg-black/50 hidden md:hidden" onClick={(e) => {
           if(e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
       }}>
           <div className="w-64 h-full bg-slate-900 text-white p-4 flex flex-col animate-in slide-in-from-left duration-200">
