@@ -361,7 +361,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
 
   // --- RENDER: Main Item Form ---
   return (
-    <div className="flex flex-col h-[600px]">
+    <div className="flex flex-col max-h-[80vh] md:h-[600px]">
       {/* Tabs Navigation */}
       <div className="flex border-b border-gray-100 mb-6">
         <button
@@ -397,7 +397,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
         {/* DETAILS TAB */}
         {activeTab === 'details' && (
             <form id="item-form" onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 
                 {/* Image URLs - Summary View */}
                 <div className="col-span-2">
@@ -453,8 +453,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* Name */}
-                <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
+                <div className="col-span-2 space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Item Name *</label>
                 <input
                     required
                     type="text"
@@ -466,8 +466,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* SKU */}
-                <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">SKU *</label>
+                <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">SKU *</label>
                 <input
                     required
                     type="text"
@@ -479,8 +479,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* Category with Manage Button */}
-                <div>
-                    <div className="flex justify-between items-center mb-1">
+                <div className="space-y-1">
+                    <div className="flex justify-between items-center">
                         <label className="block text-sm font-medium text-gray-700">Category</label>
                         <button 
                             type="button"
@@ -504,10 +504,10 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 {/* Supplier Selection */}
                 <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Supplier *</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-1">
                         <div className={`w-full px-4 py-2 border rounded-lg flex items-center justify-between bg-gray-50 ${!supplierId ? 'text-gray-400' : 'text-gray-900'}`}>
-                            <span>
+                            <span className="truncate">
                                 {supplierId 
                                     ? getSupplierName(supplierId) 
                                     : 'No supplier selected'}
@@ -517,22 +517,22 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                     <button
                         type="button"
                         onClick={() => setIsSupplierModalOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap"
                     >
                         <Search size={18} />
-                        <span>Find</span>
+                        <span>Find Supplier</span>
                     </button>
                 </div>
                 </div>
 
                 {/* BUYING SECTION */}
-                <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                     <h3 className="col-span-2 text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-1 flex items-center gap-2">
+                <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                     <h3 className="col-span-1 md:col-span-2 text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-1 flex items-center gap-2">
                         Buying Information
                      </h3>
                      
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Unit Cost (Buying Price)</label>
+                     <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">Unit Cost (Buying Price)</label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-sans">₱</span>
                             <input
@@ -547,8 +547,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Unit Type</label>
+                    <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">Unit Type</label>
                         <select
                             value={costUnit}
                             onChange={e => setCostUnit(e.target.value)}
@@ -569,14 +569,14 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                             <option value="liter">liter</option>
                             <option value="meter">meter</option>
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">Select the unit measure (e.g. sack, box)</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Select the unit measure (e.g. sack, box)</p>
                     </div>
                 </div>
 
                 {/* SELLING SECTION */}
-                <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Retail Price (Selling)</label>
+                <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">Retail Price (Selling)</label>
                         <div className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-sans">₱</span>
                                 <input
@@ -591,8 +591,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Wholesale Price (Selling)</label>
+                    <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">Wholesale Price (Selling)</label>
                         <div className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-sans">₱</span>
                                 <input
@@ -609,8 +609,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                 {/* Min Stock */}
-                 <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Min. Stock Level</label>
+                 <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">Min. Stock Level</label>
                         <input
                             type="number"
                             min="0"
@@ -621,8 +621,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
                 
                 {/* Quantity */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">
                         Quantity 
                         {initialData && <span className="text-xs font-normal text-gray-500 ml-2">(Use 'Stock Management' to adjust)</span>}
                     </label>
@@ -637,8 +637,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                 </div>
 
                  {/* Movement Speed */}
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Movement Speed</label>
+                 <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">Movement Speed</label>
                     <select
                         value={movementSpeed}
                         onChange={e => setMovementSpeed(e.target.value as any)}
@@ -650,8 +650,8 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                     </select>
                 </div>
 
-                <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Location / Bin</label>
+                <div className="col-span-2 space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">Location / Bin</label>
                     <input
                         type="text"
                         value={location}
