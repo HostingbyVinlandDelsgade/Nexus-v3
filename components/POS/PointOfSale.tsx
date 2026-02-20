@@ -198,17 +198,63 @@ const PointOfSale: React.FC = () => {
       setCurrentImageIndex((prev) => (prev - 1 + previewGallery.images.length) % previewGallery.images.length);
   };
 
+  const getItemCartQty = (itemId: string) => {
+    const item = cart.find(i => i.id === itemId);
+    return item ? item.cartQuantity : 0;
+  };
+
+  const handleQuantityChange = (e: React.MouseEvent, item: InventoryItem, delta: number) => {
+    e.stopPropagation();
+    const currentQty = getItemCartQty(item.id);
+    
+    if (currentQty === 0 && delta > 0) {
+        addToCart(item, 1);
+    } else if (currentQty > 0) {
+        if (currentQty + delta <= 0) {
+            removeFromCart(item.id);
+        } else {
+            updateQuantity(item.id, delta);
+        }
+    }
+  };
+
+  const handleManualQuantityInput = (e: React.ChangeEvent<HTMLInputElement>, item: InventoryItem) => {
+      const valStr = e.target.value;
+      const currentQty = getItemCartQty(item.id);
+
+      if (valStr === '') {
+           if (currentQty > 0) removeFromCart(item.id);
+           return;
+      }
+      
+      const val = parseInt(valStr);
+      if (isNaN(val)) return;
+      
+      if (val <= 0) {
+          if (currentQty > 0) removeFromCart(item.id);
+      } else {
+          const newQty = Math.min(val, item.quantity);
+          
+          if (currentQty === 0) {
+              addToCart(item, newQty);
+          } else {
+              const delta = newQty - currentQty;
+              if (delta !== 0) updateQuantity(item.id, delta);
+          }
+      }
+  };
+
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] lg:h-screen gap-6 overflow-hidden relative">
       
       {/* LEFT: Product Browser */}
       <div className={`flex-1 flex flex-col min-w-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden ${mobileView === 'cart' ? 'hidden lg:flex' : 'flex'}`}>
         {/* Header / Search */}
-        <div className="p-4 border-b border-gray-100 space-y-4">
+        <div className="p-4 border-b border-gray-100 space-y-4 bg-white z-10">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-800">Browse Items</h2>
             <div className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
-                {filteredItems.length} Products Available
+                {filteredItems.length} Products
             </div>
           </div>
           
@@ -220,13 +266,13 @@ const PointOfSale: React.FC = () => {
                   placeholder="Search products..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-full text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 focus:bg-white transition-colors"
                 />
              </div>
              <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
+                className="px-4 py-2.5 border border-gray-200 rounded-full text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
              >
                 <option value="All">All Categories</option>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -235,85 +281,92 @@ const PointOfSale: React.FC = () => {
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50 pb-32 lg:pb-4">
+        <div className="flex-1 overflow-y-auto p-3 bg-gray-50/50 pb-32 lg:pb-4">
           {filteredItems.length === 0 ? (
              <div className="h-full flex flex-col items-center justify-center text-gray-400">
                 <PackageX size={48} className="mb-2 opacity-50"/>
                 <p>No products found</p>
              </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-3">
               {filteredItems.map(item => {
                 const displayImage = (item.images && item.images.length > 0) ? item.images[0] : item.imageUrl;
+                const cartQty = getItemCartQty(item.id);
+                
                 return (
                   <div
                     key={item.id}
                     onClick={() => addToCart(item)}
                     role="button"
                     tabIndex={0}
-                    className="group flex flex-row sm:flex-col bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-left relative overflow-hidden h-24 sm:h-full p-0 cursor-pointer"
+                    className="group flex flex-col bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-left relative overflow-hidden h-full cursor-pointer"
                   >
                     {/* Image Section */}
-                    <div className="relative w-24 sm:w-full h-full sm:h-32 bg-gray-100 flex items-center justify-center overflow-hidden group/image flex-shrink-0">
+                    <div className="relative w-full aspect-square bg-gray-100 flex items-center justify-center overflow-hidden group/image">
                         {displayImage ? (
                             <>
                               <img src={displayImage} alt={item.name} className="w-full h-full object-cover" />
-                              {/* Eye Icon Overlay - Centered */}
-                              <div 
-                                  onClick={(e) => handlePreviewImage(e, item)}
-                                  className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity cursor-pointer z-20"
-                              >
-                                  <div className="bg-white/90 p-2 rounded-full text-gray-800 shadow-sm hover:bg-white hover:scale-110 transition-transform">
-                                      <Eye size={18} />
-                                  </div>
-                              </div>
                             </>
                         ) : (
                             <Package size={32} className="text-gray-300" />
                         )}
-                        {/* Add to Cart Overlay (Top Right) */}
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 hidden sm:block">
-                            <div className="bg-indigo-600 text-white p-1.5 rounded-full shadow-lg">
-                                <Plus size={16} />
-                            </div>
+                        
+                        {/* Info / Details Button - Always Visible */}
+                        <div 
+                            onClick={(e) => handleViewDetails(e, item)}
+                            className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full text-gray-700 shadow-sm cursor-pointer z-20 hover:bg-white hover:text-indigo-600 transition-colors"
+                            title="View Details"
+                        >
+                            <Info size={16} />
                         </div>
                     </div>
 
                     {/* Content Section */}
-                    <div className="p-3 flex flex-col flex-1 w-full justify-between sm:justify-start">
-                        <div className="flex-1 mb-0 sm:mb-2">
-                            <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-1 leading-tight">{item.name}</h3>
-                            <div className="hidden sm:block">
-                                <p className="text-xs text-gray-500 mb-1">{item.sku}</p>
-                                <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">
-                                {item.category}
+                    <div className="p-3 flex flex-col flex-1">
+                        <div className="flex-1">
+                            <h3 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1 leading-tight h-9">{item.name}</h3>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 truncate max-w-[80px]">
+                                    {item.category}
+                                </span>
+                                <span className="text-[10px] text-gray-400">
+                                    {item.quantity} {item.costUnit || 'pcs'}
                                 </span>
                             </div>
                         </div>
                         
-                        <div className="mt-auto pt-0 sm:pt-2 border-t-0 sm:border-t border-gray-50 w-full space-y-1">
-                            <div className="flex justify-between items-center">
-                              <span className="text-[10px] text-gray-500 uppercase font-semibold hidden sm:inline">Retail</span>
-                              <span className="font-bold text-gray-900 text-sm">₱{item.retailPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        <div className="mt-auto space-y-2">
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-xs font-bold text-indigo-600">₱</span>
+                                <span className="font-bold text-indigo-600 text-lg">{item.retailPrice.toLocaleString()}</span>
                             </div>
-                            <div className="flex justify-between items-center hidden sm:flex">
-                              <span className="text-[10px] text-gray-500 uppercase font-semibold">Wholesale</span>
-                              <span className="font-bold text-blue-600 text-sm">₱{item.wholesalePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                            </div>
-                            {/* Stock Badge */}
-                            <div className="flex items-center justify-between mt-1 pt-1">
-                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${item.quantity > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                    {item.quantity.toLocaleString()} {item.costUnit || 'pcs'}
-                                </span>
-                                {/* View Details Icon */}
-                                <div 
-                                    role="button"
-                                    onClick={(e) => handleViewDetails(e, item)}
-                                    className="p-1 text-gray-400 hover:text-indigo-600 transition-colors z-30 relative"
-                                    title="View Details"
+
+                            {/* Quantity Stepper with Input */}
+                            <div className="flex items-center justify-between bg-gray-50 rounded-lg border border-gray-200 p-0.5" onClick={(e) => e.stopPropagation()}>
+                                <button 
+                                    onClick={(e) => handleQuantityChange(e, item, -1)}
+                                    disabled={cartQty === 0}
+                                    className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-white rounded-md transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
                                 >
-                                    <Info size={14} />
-                                </div>
+                                    <Minus size={14} />
+                                </button>
+                                
+                                <input 
+                                    type="number"
+                                    value={cartQty === 0 ? '' : cartQty}
+                                    placeholder="0"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => handleManualQuantityInput(e, item)}
+                                    className="w-10 text-center text-sm font-semibold bg-transparent outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0 text-gray-900 placeholder-gray-300"
+                                />
+                                
+                                <button 
+                                    onClick={(e) => handleQuantityChange(e, item, 1)}
+                                    disabled={cartQty >= item.quantity}
+                                    className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-white rounded-md transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                                >
+                                    <Plus size={14} />
+                                </button>
                             </div>
                         </div>
                     </div>
