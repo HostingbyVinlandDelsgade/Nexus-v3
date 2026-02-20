@@ -118,8 +118,77 @@ const App = () => {
         </div>
       </aside>
 
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 flex justify-around items-center px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button 
+            onClick={() => setCurrentView('dashboard')}
+            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'dashboard' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+            <LayoutDashboard size={20} />
+            <span className="text-[10px] font-medium mt-1">Home</span>
+        </button>
+        <button 
+            onClick={() => setCurrentView('pos')}
+            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'pos' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+            <ShoppingCart size={20} />
+            <span className="text-[10px] font-medium mt-1">POS</span>
+        </button>
+        <button 
+            onClick={() => setCurrentView('inventory')}
+            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'inventory' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+            <Package size={20} />
+            <span className="text-[10px] font-medium mt-1">Items</span>
+        </button>
+        <button 
+            onClick={() => setIsSidebarCollapsed(false)} // Reusing sidebar state to maybe show a menu modal or just toggle sidebar? 
+            // Actually, sidebar is hidden on mobile. Let's make a simple menu for other links or just expose them.
+            // For now, let's just show the sidebar as a drawer if clicked?
+            // Or better, just add the other links here if they fit, or a "More" tab.
+            // Let's use a "More" tab that sets view to 'settings' or opens a drawer.
+            // Given the constraints, let's just map 'Menu' to toggling the sidebar visibility on mobile (which we need to implement).
+            // But sidebar is `hidden md:flex`. We need to make it visible on mobile when toggled.
+            className={`flex flex-col items-center p-2 rounded-lg transition-colors text-gray-400 hover:text-gray-600`}
+            onClick={() => {
+                // Toggle a mobile menu state
+                const mobileMenu = document.getElementById('mobile-sidebar');
+                if (mobileMenu) mobileMenu.classList.toggle('hidden');
+            }}
+        >
+            <Menu size={20} />
+            <span className="text-[10px] font-medium mt-1">Menu</span>
+        </button>
+      </nav>
+
+      {/* Mobile Sidebar Drawer (Hidden by default) */}
+      <div id="mobile-sidebar" className="fixed inset-0 z-50 bg-black/50 hidden md:hidden" onClick={(e) => {
+          if(e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+      }}>
+          <div className="w-64 h-full bg-slate-900 text-white p-4 flex flex-col animate-in slide-in-from-left duration-200">
+              <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-xl font-bold">{appName}</h2>
+                  <button onClick={() => document.getElementById('mobile-sidebar')?.classList.add('hidden')} className="p-2 hover:bg-slate-800 rounded-lg">
+                      <LogOut size={20} className="rotate-180"/> 
+                  </button>
+              </div>
+              <nav className="space-y-2">
+                  <button onClick={() => { setCurrentView('dashboard'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><LayoutDashboard size={20}/> Dashboard</button>
+                  <button onClick={() => { setCurrentView('pos'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><ShoppingCart size={20}/> Point of Sale</button>
+                  <button onClick={() => { setCurrentView('inventory'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><Package size={20}/> Inventory</button>
+                  <button onClick={() => { setCurrentView('suppliers'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><Users size={20}/> Suppliers</button>
+                  <button onClick={() => { setCurrentView('movements'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><History size={20}/> Movements</button>
+                  <button onClick={() => { setCurrentView('reports'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><BarChart3 size={20}/> Reports</button>
+                  <button onClick={() => { setCurrentView('settings'); document.getElementById('mobile-sidebar')?.classList.add('hidden'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300"><SettingsIcon size={20}/> Settings</button>
+              </nav>
+              <div className="mt-auto pt-4 border-t border-slate-800">
+                  <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-red-400"><LogOut size={20}/> Logout</button>
+              </div>
+          </div>
+      </div>
+
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 pb-16 md:pb-0">
           {/* Mobile Header */}
           <header className="md:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm z-10">
                <div className="flex items-center gap-2">

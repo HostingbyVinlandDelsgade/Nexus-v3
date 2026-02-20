@@ -212,7 +212,7 @@ const PointOfSale: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <input
@@ -235,14 +235,14 @@ const PointOfSale: React.FC = () => {
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50 pb-20 lg:pb-4">
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50 pb-32 lg:pb-4">
           {filteredItems.length === 0 ? (
              <div className="h-full flex flex-col items-center justify-center text-gray-400">
                 <PackageX size={48} className="mb-2 opacity-50"/>
                 <p>No products found</p>
              </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4">
               {filteredItems.map(item => {
                 const displayImage = (item.images && item.images.length > 0) ? item.images[0] : item.imageUrl;
                 return (
@@ -251,10 +251,10 @@ const PointOfSale: React.FC = () => {
                     onClick={() => addToCart(item)}
                     role="button"
                     tabIndex={0}
-                    className="group flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-left relative overflow-hidden h-full p-0 cursor-pointer"
+                    className="group flex flex-row sm:flex-col bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-left relative overflow-hidden h-24 sm:h-full p-0 cursor-pointer"
                   >
                     {/* Image Section */}
-                    <div className="relative w-full h-32 bg-gray-100 flex items-center justify-center overflow-hidden group/image">
+                    <div className="relative w-24 sm:w-full h-full sm:h-32 bg-gray-100 flex items-center justify-center overflow-hidden group/image flex-shrink-0">
                         {displayImage ? (
                             <>
                               <img src={displayImage} alt={item.name} className="w-full h-full object-cover" />
@@ -272,7 +272,7 @@ const PointOfSale: React.FC = () => {
                             <Package size={32} className="text-gray-300" />
                         )}
                         {/* Add to Cart Overlay (Top Right) */}
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 hidden sm:block">
                             <div className="bg-indigo-600 text-white p-1.5 rounded-full shadow-lg">
                                 <Plus size={16} />
                             </div>
@@ -280,21 +280,23 @@ const PointOfSale: React.FC = () => {
                     </div>
 
                     {/* Content Section */}
-                    <div className="p-3 flex flex-col flex-1 w-full">
-                        <div className="flex-1 mb-2">
+                    <div className="p-3 flex flex-col flex-1 w-full justify-between sm:justify-start">
+                        <div className="flex-1 mb-0 sm:mb-2">
                             <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-1 leading-tight">{item.name}</h3>
-                            <p className="text-xs text-gray-500 mb-1">{item.sku}</p>
-                            <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">
-                              {item.category}
-                            </span>
+                            <div className="hidden sm:block">
+                                <p className="text-xs text-gray-500 mb-1">{item.sku}</p>
+                                <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">
+                                {item.category}
+                                </span>
+                            </div>
                         </div>
                         
-                        <div className="mt-auto pt-2 border-t border-gray-50 w-full space-y-1">
+                        <div className="mt-auto pt-0 sm:pt-2 border-t-0 sm:border-t border-gray-50 w-full space-y-1">
                             <div className="flex justify-between items-center">
-                              <span className="text-[10px] text-gray-500 uppercase font-semibold">Retail</span>
+                              <span className="text-[10px] text-gray-500 uppercase font-semibold hidden sm:inline">Retail</span>
                               <span className="font-bold text-gray-900 text-sm">₱{item.retailPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                             </div>
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center hidden sm:flex">
                               <span className="text-[10px] text-gray-500 uppercase font-semibold">Wholesale</span>
                               <span className="font-bold text-blue-600 text-sm">₱{item.wholesalePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                             </div>
@@ -322,7 +324,7 @@ const PointOfSale: React.FC = () => {
           )}
         </div>
         {/* Mobile Floating Cart Button */}
-        <div className="absolute bottom-4 left-4 right-4 lg:hidden z-30">
+        <div className="absolute bottom-20 left-4 right-4 lg:hidden z-30">
             <button 
                 onClick={() => setMobileView('cart')}
                 className="w-full bg-indigo-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between font-bold"
