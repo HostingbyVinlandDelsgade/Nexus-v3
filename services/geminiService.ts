@@ -8,8 +8,8 @@ export const generateInventoryInsight = async (
   items: InventoryItem[], 
   movements: StockMovement[]
 ): Promise<string> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) return "API Key not configured. Unable to generate insights.";
+  const apiKey = localStorage.getItem('nexus_gemini_api_key') || process.env.GEMINI_API_KEY || process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) return "API Key not configured. Please configure it in Settings > AI Configuration.";
 
   const lowStock = items.filter(i => i.quantity <= i.minStockLevel);
   // Using unitCost for inventory valuation (fall back to wholesalePrice if unitCost missing from old data)
@@ -44,7 +44,7 @@ export const generateInventoryInsight = async (
 };
 
 export const generateItemDescription = async (name: string, category: string): Promise<string> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = localStorage.getItem('nexus_gemini_api_key') || process.env.GEMINI_API_KEY || process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) return "";
 
   try {

@@ -248,7 +248,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-      const saved = localStorage.getItem('nexus_current_user');
+      const saved = sessionStorage.getItem('nexus_current_user');
       return saved ? JSON.parse(saved) : null;
   });
 
@@ -283,9 +283,9 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     localStorage.setItem('nexus_company_info', JSON.stringify(companyInfo));
     
     if (currentUser) {
-        localStorage.setItem('nexus_current_user', JSON.stringify(currentUser));
+        sessionStorage.setItem('nexus_current_user', JSON.stringify(currentUser));
     } else {
-        localStorage.removeItem('nexus_current_user');
+        sessionStorage.removeItem('nexus_current_user');
     }
 
   }, [items, suppliers, movements, expenses, walletTransactions, passcode, users, categories, companyInfo, currentUser]);

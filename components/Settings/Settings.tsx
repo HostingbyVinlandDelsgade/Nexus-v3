@@ -34,8 +34,15 @@ const Settings: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // API Key State
+  const [apiKey, setApiKey] = useState('');
+  const [apiMessage, setApiMessage] = useState({ type: '', text: '' });
+
   useEffect(() => {
       setCompanyForm(companyInfo);
+      // Load API Key from localStorage if available
+      const savedKey = localStorage.getItem('nexus_gemini_api_key');
+      if (savedKey) setApiKey(savedKey);
   }, [companyInfo]);
 
   // --- Lock Screen Handler ---
@@ -73,6 +80,18 @@ const Settings: React.FC = () => {
       updateCompanyInfo(companyForm);
       setCompanyMessage({ type: 'success', text: 'Company details updated!' });
       setTimeout(() => setCompanyMessage({ type: '', text: '' }), 3000);
+  };
+
+  const handleUpdateApiKey = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (apiKey.trim()) {
+          localStorage.setItem('nexus_gemini_api_key', apiKey.trim());
+          setApiMessage({ type: 'success', text: 'API Key saved successfully!' });
+      } else {
+          localStorage.removeItem('nexus_gemini_api_key');
+          setApiMessage({ type: 'info', text: 'API Key removed.' });
+      }
+      setTimeout(() => setApiMessage({ type: '', text: '' }), 3000);
   };
 
   // --- User Management Handlers ---
@@ -388,6 +407,44 @@ const Settings: React.FC = () => {
                         </label>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        {/* AI Configuration */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <Shield size={20} className="text-indigo-600"/>
+                    AI Configuration
+                </h3>
+                <p className="text-sm text-gray-500">Configure Gemini API for Insights</p>
+            </div>
+            <div className="p-6">
+                <form onSubmit={handleUpdateApiKey} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
+                        <input
+                            type="password"
+                            value={apiKey}
+                            onChange={(e) => setApiKey(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="Enter your Gemini API Key"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            Leave empty to use system default (if configured). 
+                            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline ml-1">Get a key here</a>.
+                        </p>
+                    </div>
+                    {apiMessage.text && (
+                        <div className={`text-sm flex items-center gap-2 ${apiMessage.type === 'success' ? 'text-green-600' : 'text-blue-600'}`}>
+                            <Check size={16}/>
+                            {apiMessage.text}
+                        </div>
+                    )}
+                    <button type="submit" className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors text-sm font-medium">
+                        Save API Key
+                    </button>
+                </form>
             </div>
         </div>
       </div>
