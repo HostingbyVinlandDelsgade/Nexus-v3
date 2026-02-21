@@ -1,10 +1,8 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 const app = express();
 const PORT = 3000;
@@ -15,6 +13,12 @@ app.use(express.json());
 // --- Google OAuth Configuration ---
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+
+console.log('--- Server Configuration ---');
+console.log('GOOGLE_CLIENT_ID:', CLIENT_ID ? 'Set' : 'Missing');
+console.log('GOOGLE_CLIENT_SECRET:', CLIENT_SECRET ? 'Set' : 'Missing');
+console.log('REDIRECT_URI:', process.env.REDIRECT_URI || 'Defaulting to localhost');
+
 // The redirect URI must match exactly what is configured in Google Cloud Console
 // For development, it's usually http://localhost:3000/auth/callback
 // In production, it's the deployed URL + /auth/callback
@@ -29,9 +33,16 @@ const oauth2Client = new OAuth2Client(
 
 // --- API Routes ---
 
+// Health Check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', server: 'running' });
+});
+
 // 1. Get Auth URL
 app.get('/api/auth/url', (req, res) => {
+  console.log('GET /api/auth/url requested');
   if (!CLIENT_ID || !CLIENT_SECRET) {
+    console.error('Google Client ID/Secret not configured');
     return res.status(500).json({ error: 'Google Client ID/Secret not configured' });
   }
 

@@ -57,12 +57,23 @@ const Settings: React.FC = () => {
 
   const handleConnectGoogle = async () => {
       try {
+          // Check server health first
+          const health = await fetch('/api/health').catch(() => null);
+          if (!health || !health.ok) {
+              throw new Error('Server is not reachable. Please ensure the backend is running.');
+          }
+
           const response = await fetch('/api/auth/url');
+          if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.error || `Server error: ${response.status}`);
+          }
           const { url } = await response.json();
+          if (!url) throw new Error('No auth URL returned');
           window.location.href = url;
-      } catch (error) {
+      } catch (error: any) {
           console.error('Failed to get auth URL:', error);
-          alert('Failed to initiate Google connection.');
+          alert(`Failed to initiate Google connection: ${error.message}`);
       }
   };
 
