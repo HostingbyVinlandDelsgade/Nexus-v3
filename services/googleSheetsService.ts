@@ -171,16 +171,34 @@ class GoogleSheetsService {
   ): Promise<void> {
       if (!this.isAuthenticated() || !this.hasSpreadsheet()) return;
       
-      await Promise.all([
-          this.syncItems(items),
-          this.syncSuppliers(suppliers),
-          this.syncMovements(movements),
-          this.syncExpenses(expenses),
-          this.syncWallet(wallet),
-          this.syncCategories(categories),
-          this.syncCompanyInfo(companyInfo),
-          this.syncUsers(users)
-      ]);
+      // Execute sequentially to avoid rate limits (Google Sheets API limit is 60 req/min)
+      try {
+          await this.syncItems(items);
+          await new Promise(r => setTimeout(r, 500)); // 500ms delay
+          
+          await this.syncSuppliers(suppliers);
+          await new Promise(r => setTimeout(r, 500));
+          
+          await this.syncMovements(movements);
+          await new Promise(r => setTimeout(r, 500));
+          
+          await this.syncExpenses(expenses);
+          await new Promise(r => setTimeout(r, 500));
+          
+          await this.syncWallet(wallet);
+          await new Promise(r => setTimeout(r, 500));
+          
+          await this.syncCategories(categories);
+          await new Promise(r => setTimeout(r, 500));
+          
+          await this.syncCompanyInfo(companyInfo);
+          await new Promise(r => setTimeout(r, 500));
+          
+          await this.syncUsers(users);
+      } catch (error) {
+          console.error('Error during sequential sync:', error);
+          throw error; // Re-throw to be caught by caller
+      }
   }
 
   // 6. Fetch Items (Read all items from sheet)

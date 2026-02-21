@@ -300,7 +300,33 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     return () => clearTimeout(syncTimer);
   }, [items, suppliers, movements, expenses, walletTransactions, categories, companyInfo, users, isGoogleConnected]);
 
-  // ...
+  // Calculate current wallet balance derived from history
+  const walletBalance = (walletTransactions || []).reduce((acc, tx) => {
+    if (tx.type === 'DEPOSIT' || tx.type === 'SALE') return acc + tx.amount;
+    return acc - tx.amount;
+  }, 0);
+
+  // Persist to LocalStorage whenever state changes, unless resetting
+  useEffect(() => {
+    if (isResettingRef.current) return;
+
+    localStorage.setItem('nexus_items', JSON.stringify(items));
+    localStorage.setItem('nexus_suppliers', JSON.stringify(suppliers));
+    localStorage.setItem('nexus_movements', JSON.stringify(movements));
+    localStorage.setItem('nexus_expenses', JSON.stringify(expenses));
+    localStorage.setItem('nexus_wallet', JSON.stringify(walletTransactions));
+    localStorage.setItem('nexus_passcode', passcode);
+    localStorage.setItem('nexus_users', JSON.stringify(users));
+    localStorage.setItem('nexus_categories', JSON.stringify(categories));
+    localStorage.setItem('nexus_company_info', JSON.stringify(companyInfo));
+    
+    if (currentUser) {
+        sessionStorage.setItem('nexus_current_user', JSON.stringify(currentUser));
+    } else {
+        sessionStorage.removeItem('nexus_current_user');
+    }
+
+  }, [items, suppliers, movements, expenses, walletTransactions, passcode, users, categories, companyInfo, currentUser]);
 
   const syncToGoogle = async () => {
     if (isGoogleConnected) {
