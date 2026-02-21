@@ -99,7 +99,92 @@ class GoogleSheetsService {
     return data.spreadsheetId;
   }
 
-  // ... (syncItems, syncSuppliers, syncMovements remain the same) ...
+  // 2. Sync Items (Write all items to sheet)
+  public async syncItems(items: InventoryItem[]): Promise<void> {
+    if (!this.tokens || !this.spreadsheetId) throw new Error('Not connected to Google Sheets');
+
+    // Convert items to rows
+    // Header: ID, Name, SKU, Category, Quantity, Cost, Price...
+    const header = ['id', 'name', 'sku', 'category', 'quantity', 'unitCost', 'retailPrice', 'wholesalePrice', 'minStockLevel', 'supplierId', 'description', 'imageUrl', 'images', 'imageFit', 'movementSpeed'];
+    
+    const rows = items.map(item => [
+      item.id,
+      item.name,
+      item.sku,
+      item.category,
+      item.quantity,
+      item.unitCost,
+      item.retailPrice,
+      item.wholesalePrice,
+      item.minStockLevel,
+      item.supplierId,
+      item.description,
+      item.imageUrl || '',
+      JSON.stringify(item.images || []), // Store arrays as JSON strings
+      item.imageFit || 'cover',
+      item.movementSpeed
+    ]);
+
+    const values = [header, ...rows];
+
+    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/Items!A1:O${values.length}?valueInputOption=USER_ENTERED`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${this.tokens.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values }),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to sync items');
+    }
+  }
+
+  // 3. Sync Suppliers
+  public async syncSuppliers(suppliers: Supplier[]): Promise<void> {
+    if (!this.tokens || !this.spreadsheetId) return;
+
+    const header = ['id', 'name', 'contactPerson', 'phone', 'email', 'address'];
+    const rows = suppliers.map(s => [s.id, s.name, s.contactPerson, s.phone, s.email, s.address]);
+    const values = [header, ...rows];
+
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/Suppliers!A1:F${values.length}?valueInputOption=USER_ENTERED`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${this.tokens.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values }),
+    });
+  }
+
+  // 4. Sync Movements
+  public async syncMovements(movements: StockMovement[]): Promise<void> {
+    if (!this.tokens || !this.spreadsheetId) return;
+
+    const header = ['id', 'itemId', 'type', 'quantity', 'date', 'reason', 'userId', 'notes'];
+    const rows = movements.map(m => [
+      m.id, 
+      m.itemId, 
+      m.type, 
+      m.quantity, 
+      m.date, 
+      m.reason, 
+      m.userId || 'System',
+      m.notes || ''
+    ]);
+    const values = [header, ...rows];
+
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/Movements!A1:H${values.length}?valueInputOption=USER_ENTERED`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${this.tokens.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values }),
+    });
+  }
 
   // 5. Sync Expenses
   public async syncExpenses(expenses: any[]): Promise<void> {
