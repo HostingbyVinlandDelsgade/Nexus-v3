@@ -112,58 +112,70 @@ const SupplierList: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {filteredSuppliers.map(supplier => (
-            <div key={supplier.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all group relative">
-                
-                {/* Status Badge */}
-                <div className="absolute top-4 right-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+            <div key={supplier.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex flex-col h-full">
+                {/* Top Row: Icon & Status */}
+                <div className="flex items-start justify-between mb-5">
+                    <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-600 border border-slate-100 group-hover:bg-indigo-50 group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all shadow-sm">
+                        <Building2 size={24} />
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${
                         supplier.status === 'Active' 
-                        ? 'bg-green-50 text-green-700 border-green-200' 
-                        : 'bg-gray-50 text-gray-600 border-gray-200'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+                        : 'bg-slate-50 text-slate-600 border-slate-200'
                     }`}>
-                        <CircleDot size={8} className={supplier.status === 'Active' ? 'fill-green-500 text-green-500' : 'fill-gray-400 text-gray-400'} />
+                        <CircleDot size={10} className={`inline mr-1.5 ${supplier.status === 'Active' ? 'fill-emerald-500 text-emerald-500' : 'fill-slate-400 text-slate-400'}`} />
                         {supplier.status || 'Active'}
                     </span>
                 </div>
-
-                <div className="flex items-center gap-3 mb-4 pr-16">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
-                        <Building2 size={24} />
+                
+                {/* Name & Primary Contact */}
+                <div className="mb-5">
+                    <h3 className="text-xl font-bold text-slate-900 leading-tight mb-1 group-hover:text-indigo-600 transition-colors">
+                        {supplier.name}
+                    </h3>
+                    <div className="flex items-center gap-2 text-slate-500">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Contact Person</span>
+                        <div className="h-px flex-1 bg-slate-100"></div>
                     </div>
-                    <div>
-                        <h3 className="font-bold text-gray-900 truncate">{supplier.name}</h3>
-                        <p className="text-sm text-gray-500 truncate">{supplier.contactPerson}</p>
+                    <p className="text-sm font-semibold text-slate-700 mt-1">{supplier.contactPerson}</p>
+                </div>
+
+                {/* Contact Details Grid */}
+                <div className="space-y-3 mb-6 flex-1">
+                    <div className="flex items-center gap-3 text-slate-600 hover:text-indigo-600 transition-colors group/link">
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover/link:bg-indigo-50 group-hover/link:text-indigo-500 transition-all border border-slate-100/50">
+                            <Mail size={14} />
+                        </div>
+                        <a href={`mailto:${supplier.email}`} className="text-sm truncate font-medium">{supplier.email}</a>
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-600">
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100/50">
+                            <Phone size={14} />
+                        </div>
+                        <span className="text-sm font-medium">{supplier.phone}</span>
+                    </div>
+                    <div className="flex items-start gap-3 text-slate-600">
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 mt-0.5 border border-slate-100/50 flex-shrink-0">
+                            <MapPin size={14} />
+                        </div>
+                        <span className="text-sm font-medium line-clamp-2 leading-relaxed">{supplier.address}</span>
                     </div>
                 </div>
 
-                <div className="space-y-3 text-sm text-gray-600 mb-6">
-                    <div className="flex items-center gap-2">
-                        <Mail size={16} className="text-gray-400" />
-                        <a href={`mailto:${supplier.email}`} className="hover:text-indigo-600 transition-colors truncate">{supplier.email}</a>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Phone size={16} className="text-gray-400" />
-                        <span>{supplier.phone}</span>
-                    </div>
-                    <div className="flex items-start gap-2 h-10 overflow-hidden">
-                        <MapPin size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
-                        <span className="line-clamp-2">{supplier.address}</span>
-                    </div>
-                </div>
-
-                <div className="flex gap-2 pt-4 border-t border-gray-50">
+                {/* Actions */}
+                <div className="grid grid-cols-2 gap-3 pt-5 border-t border-slate-50">
                     <button 
                         onClick={() => handleOpenView(supplier)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-sm font-medium"
+                        className="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl hover:bg-indigo-600 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest shadow-sm"
                     >
-                        <Eye size={16} />
+                        <Eye size={14} />
                         View
                     </button>
                     <button 
                         onClick={() => handleOpenEdit(supplier)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-sm font-medium"
+                        className="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl hover:bg-indigo-600 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest shadow-sm"
                     >
-                        <Edit2 size={16} />
+                        <Edit2 size={14} />
                         Edit
                     </button>
                 </div>
