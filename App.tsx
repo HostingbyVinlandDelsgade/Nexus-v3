@@ -14,12 +14,21 @@ import LoginPage from './components/Auth/LoginPage';
 import ReportsPage from './components/Reports/ReportsPage';
 import SystemFlow from './components/SystemFlow/SystemFlow';
 
+import AuthCallback from './components/Auth/AuthCallback';
+
 type View = 'dashboard' | 'inventory' | 'suppliers' | 'movements' | 'pos' | 'settings' | 'reports' | 'flow';
 
 const App = () => {
   const { isAuthenticated, logout, companyInfo, currentUser } = useInventory();
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isAuthCallback, setIsAuthCallback] = useState(false);
+
+  useEffect(() => {
+    if (window.location.pathname === '/auth/callback') {
+        setIsAuthCallback(true);
+    }
+  }, []);
 
   // Effect to default cashiers to POS view
   useEffect(() => {
@@ -27,6 +36,10 @@ const App = () => {
           setCurrentView('pos');
       }
   }, [currentUser]);
+
+  if (isAuthCallback) {
+      return <AuthCallback onSuccess={() => setIsAuthCallback(false)} />;
+  }
 
   if (!isAuthenticated) {
     return <LoginPage />;

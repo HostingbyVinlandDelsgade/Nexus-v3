@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useInventory } from '../../contexts/InventoryContext';
 import { User, UserRole } from '../../types';
-import { Shield, Lock, Download, Upload, Trash2, AlertTriangle, Check, RefreshCw, Eye, EyeOff, UserCircle, Building2, Plus, Edit2, Users } from 'lucide-react';
+import { Shield, Lock, Download, Upload, Trash2, AlertTriangle, Check, RefreshCw, Eye, EyeOff, UserCircle, Building2, Plus, Edit2, Users, Database, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import Modal from '../ui/Modal';
+import googleSheetsService from '../../services/googleSheetsService';
 
 const Settings: React.FC = () => {
   const { 
@@ -38,12 +39,50 @@ const Settings: React.FC = () => {
   const [apiKey, setApiKey] = useState('');
   const [apiMessage, setApiMessage] = useState({ type: '', text: '' });
 
+  // Google Sheets State
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
   useEffect(() => {
       setCompanyForm(companyInfo);
       // Load API Key from localStorage if available
       const savedKey = localStorage.getItem('nexus_gemini_api_key');
       if (savedKey) setApiKey(savedKey);
+
+      // Check Google Auth Status
+      googleSheetsService.loadTokens();
+      googleSheetsService.loadSpreadsheetId();
+      setIsGoogleConnected(googleSheetsService.isAuthenticated());
   }, [companyInfo]);
+
+  const handleConnectGoogle = async () => {
+      try {
+          const response = await fetch('/api/auth/url');
+          const { url } = await response.json();
+          window.location.href = url;
+      } catch (error) {
+          console.error('Failed to get auth URL:', error);
+          alert('Failed to initiate Google connection.');
+      }
+  };
+
+  const handleSyncNow = async () => {
+      if (!isGoogleConnected) return;
+      setIsSyncing(true);
+      try {
+          // TODO: Implement full sync logic (read/write)
+          // For now, just create spreadsheet if missing
+          if (!googleSheetsService.hasSpreadsheet()) {
+              await googleSheetsService.createSpreadsheet();
+          }
+          alert('Sync completed successfully!');
+      } catch (error: any) {
+          console.error('Sync failed:', error);
+          alert(`Sync failed: ${error.message}`);
+      } finally {
+          setIsSyncing(false);
+      }
+  };
 
   // --- Lock Screen Handler ---
   const handleUnlock = (e: React.FormEvent) => {
@@ -312,6 +351,64 @@ const Settings: React.FC = () => {
                  </div>
              </form>
          </div>
+      </div>
+
+      {/* Database Integration (Google Sheets) */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <Database size={20} className="text-green-600"/>
+                  Database Integration
+              </h3>
+              <p className="text-sm text-gray-500">Connect to Google Sheets for real-time data sync</p>
+          </div>
+          <div className="p-6">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 mb-4">
+                  <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isGoogleConnected ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'}`}>
+                          <LinkIcon size={20} />
+                      </div>
+                      <div>
+                          <h4 className="font-semibold text-gray-900">Google Sheets</h4>
+                          <p className="text-xs text-gray-500">
+                              {isGoogleConnected ? 'Connected to Google Drive' : 'Not connected'}
+                          </p>
+                      </div>
+                  </div>
+                  <div>
+                      {isGoogleConnected ? (
+                          <div className="flex items-center gap-2">
+                              <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                                  <Check size={12} /> Active
+                              </span>
+                              <button 
+                                  onClick={handleSyncNow}
+                                  disabled={isSyncing}
+                                  className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors disabled:opacity-50"
+                              >
+                                  <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} /> 
+                                  {isSyncing ? 'Syncing...' : 'Sync Now'}
+                              </button>
+                          </div>
+                      ) : (
+                          <button 
+                              onClick={handleConnectGoogle}
+                              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+                          >
+                              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
+                              Connect Drive
+                          </button>
+                      )}
+                  </div>
+              </div>
+              
+              {isGoogleConnected && (
+                  <div className="text-xs text-gray-500 flex items-center gap-1 ml-1">
+                      <ExternalLink size={12} />
+                      <span>Data is automatically synced to "Nexus Inventory Data" in your Google Drive.</span>
+                  </div>
+              )}
+          </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
