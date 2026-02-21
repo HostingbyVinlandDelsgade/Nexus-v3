@@ -47,6 +47,7 @@ export interface InventoryItem {
   description: string;
   imageUrl?: string; // Primary Image URL (Legacy/Backward Compatibility)
   images?: string[]; // New: Multiple Images support
+  imageFit?: 'cover' | 'contain'; // New: Control how image fits in container
   lastUpdated: string;
 }
 

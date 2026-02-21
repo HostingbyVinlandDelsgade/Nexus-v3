@@ -169,7 +169,11 @@ const InventoryList: React.FC = () => {
                       >
                           {displayImage ? (
                               <>
-                                <img src={displayImage} alt="" className="w-full h-full object-cover" />
+                                <img 
+                                    src={displayImage} 
+                                    alt="" 
+                                    className={`w-full h-full ${item.imageFit === 'contain' ? 'object-contain p-0.5' : 'object-cover'}`} 
+                                />
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
                                     <Eye size={16} className="text-white" />
                                 </div>

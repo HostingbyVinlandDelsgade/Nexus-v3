@@ -305,7 +305,11 @@ const PointOfSale: React.FC = () => {
                     <div className="relative w-full aspect-square bg-gray-100 flex items-center justify-center overflow-hidden group/image">
                         {displayImage ? (
                             <>
-                              <img src={displayImage} alt={item.name} className="w-full h-full object-cover" />
+                              <img 
+                                src={displayImage} 
+                                alt={item.name} 
+                                className={`w-full h-full ${item.imageFit === 'contain' ? 'object-contain p-2' : 'object-cover'}`} 
+                              />
                             </>
                         ) : (
                             <Package size={32} className="text-gray-300" />

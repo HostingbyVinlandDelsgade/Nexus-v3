@@ -57,6 +57,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
   
   // Multiple Images State
   const [images, setImages] = useState<string[]>(['']);
+  const [imageFit, setImageFit] = useState<'cover' | 'contain'>('cover');
 
   // Stock Adjustment State
   const [adjType, setAdjType] = useState<MovementType>(MovementType.IN);
@@ -94,12 +95,14 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
       } else {
         setImages(['']);
       }
+      setImageFit(initialData.imageFit || 'cover');
     } else {
       // Defaults for new item
       setQuantity('0');
       setMinStockLevel('5');
       setCostUnit('pcs');
       setImages(['']);
+      setImageFit('cover');
       if (categories.length > 0) setCategory(categories[0]);
     }
   }, [initialData, categories]);
@@ -138,6 +141,7 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
       description,
       imageUrl: validImages[0] || '', // Primary image for backward compatibility
       images: validImages, // Store all images
+      imageFit,
     };
 
     if (initialData && initialData.id) {
@@ -449,6 +453,27 @@ const ItemForm: React.FC = ({ initialData, onClose }: ItemFormProps) => {
                                 <span className="text-[10px] font-medium mt-1">Add</span>
                             </button>
                         )}
+                    </div>
+                    
+                    {/* Image Fit Control */}
+                    <div className="mt-2 flex items-center gap-2 text-sm">
+                        <span className="text-gray-500 text-xs font-medium uppercase">Display Mode:</span>
+                        <div className="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+                            <button
+                                type="button"
+                                onClick={() => setImageFit('cover')}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${imageFit === 'cover' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Fill (Cover)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setImageFit('contain')}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${imageFit === 'contain' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Fit (Contain)
+                            </button>
+                        </div>
                     </div>
                 </div>
 
