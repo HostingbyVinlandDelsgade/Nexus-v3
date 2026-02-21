@@ -119,7 +119,7 @@ const App = () => {
       </aside>
 
       {/* Mobile Sidebar Drawer (Hidden by default) */}
-      <div id="mobile-sidebar" className="fixed inset-0 z-[99999] bg-black/50 hidden md:hidden" onClick={(e) => {
+      <div id="mobile-sidebar" className="fixed inset-0 z-[100] bg-black/50 hidden md:hidden" onClick={(e) => {
           if(e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
       }}>
           <div className="w-64 h-full bg-slate-900 text-white p-4 flex flex-col animate-in slide-in-from-left duration-200">
@@ -240,6 +240,43 @@ const App = () => {
               </div>
           </div>
       </main>
+
+      {/* Mobile Nav Bottom Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 flex justify-around items-center px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        {!isCashier && (
+        <button 
+            onClick={() => setCurrentView('dashboard')}
+            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'dashboard' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+            <LayoutDashboard size={20} />
+            <span className="text-[10px] font-medium mt-1">Home</span>
+        </button>
+        )}
+        <button 
+            onClick={() => setCurrentView('pos')}
+            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'pos' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+            <ShoppingCart size={20} />
+            <span className="text-[10px] font-medium mt-1">POS</span>
+        </button>
+        <button 
+            onClick={() => setCurrentView('inventory')}
+            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'inventory' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+            <Package size={20} />
+            <span className="text-[10px] font-medium mt-1">Items</span>
+        </button>
+        <button 
+            className={`flex flex-col items-center p-2 rounded-lg transition-colors text-gray-400 hover:text-gray-600`}
+            onClick={() => {
+                const mobileMenu = document.getElementById('mobile-sidebar');
+                if (mobileMenu) mobileMenu.classList.remove('hidden');
+            }}
+        >
+            <Menu size={20} />
+            <span className="text-[10px] font-medium mt-1">Menu</span>
+        </button>
+      </nav>
     </div>
   );
 };

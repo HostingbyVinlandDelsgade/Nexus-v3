@@ -248,7 +248,7 @@ const PointOfSale: React.FC = () => {
     <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] lg:h-screen gap-6 overflow-hidden relative">
       
       {/* LEFT: Product Browser */}
-      <div className={`flex-1 flex flex-col min-w-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden ${mobileView === 'cart' ? 'hidden lg:flex' : 'flex'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative ${mobileView === 'cart' ? 'hidden lg:flex' : 'flex'}`}>
         {/* Header / Search */}
         <div className="p-4 border-b border-gray-100 space-y-4 bg-white z-10">
           <div className="flex items-center justify-between">
@@ -281,7 +281,7 @@ const PointOfSale: React.FC = () => {
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-3 bg-gray-50/50 pb-32 lg:pb-4">
+        <div className="flex-1 overflow-y-auto p-3 bg-gray-50/50 pb-24 lg:pb-4">
           {filteredItems.length === 0 ? (
              <div className="h-full flex flex-col items-center justify-center text-gray-400">
                 <PackageX size={48} className="mb-2 opacity-50"/>
@@ -396,7 +396,7 @@ const PointOfSale: React.FC = () => {
           )}
         </div>
         {/* Mobile Floating Cart Button */}
-        <div className="fixed bottom-24 left-4 right-4 lg:hidden z-20">
+        <div className="absolute bottom-4 left-4 right-4 lg:hidden z-30">
             <button 
                 onClick={() => setMobileView('cart')}
                 className="w-full bg-indigo-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between font-bold"
