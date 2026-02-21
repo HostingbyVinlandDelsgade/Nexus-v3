@@ -51,6 +51,7 @@ interface InventoryContextType {
   // Google Sheets
   isGoogleConnected: boolean;
   syncToGoogle: () => Promise<void>;
+  loadFromGoogle: () => Promise<boolean>;
 }
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
@@ -343,6 +344,24 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   };
 
+  const loadFromGoogle = async () => {
+      if (!isGoogleConnected) throw new Error("Not connected to Google Drive");
+      
+      const data = await googleSheetsService.fetchAll();
+      
+      // Update State
+      if (data.items.length > 0) setItems(data.items);
+      if (data.suppliers.length > 0) setSuppliers(data.suppliers);
+      if (data.movements.length > 0) setMovements(data.movements);
+      if (data.expenses.length > 0) setExpenses(data.expenses);
+      if (data.wallet.length > 0) setWalletTransactions(data.wallet);
+      if (data.categories.length > 0) setCategories(data.categories);
+      if (Object.keys(data.companyInfo).length > 0) setCompanyInfo(data.companyInfo);
+      if (data.users.length > 0) setUsers(data.users);
+
+      return true;
+  };
+
   // --- CRUD Operations ---
 
   const addItem = (newItem: Omit<InventoryItem, 'id' | 'lastUpdated'>) => {
@@ -585,7 +604,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       verifyPasscode, updatePasscode,
       exportData, importData, resetSystemData, factoryReset,
       isAuthenticated: !!currentUser,
-      isGoogleConnected, syncToGoogle
+      isGoogleConnected, syncToGoogle, loadFromGoogle
     }}>
       {children}
     </InventoryContext.Provider>

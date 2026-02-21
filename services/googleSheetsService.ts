@@ -375,24 +375,10 @@ class GoogleSheetsService {
       }
   }
 
-  // 6. Fetch Items (Read all items from sheet)
+  // 6. Fetch Items
   public async fetchItems(): Promise<InventoryItem[]> {
-    if (!this.tokens || !this.spreadsheetId) throw new Error('Not connected to Google Sheets');
-
-    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/Items!A:O`, {
-      headers: {
-        'Authorization': `Bearer ${this.tokens.access_token}`,
-      },
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch items');
-
-    const data = await response.json();
-    const rows = data.values;
-
-    if (!rows || rows.length < 2) return []; // No data or just header
-
-    // Skip header row
+    const rows = await this.readSheet('Items');
+    if (rows.length < 2) return [];
     return rows.slice(1).map((row: any[]) => ({
       id: row[0],
       name: row[1],
@@ -410,6 +396,129 @@ class GoogleSheetsService {
       imageFit: row[13] as 'cover' | 'contain',
       movementSpeed: row[14] as 'Fast' | 'Slow' | 'Normal'
     }));
+  }
+
+  // 7. Fetch Suppliers
+  public async fetchSuppliers(): Promise<Supplier[]> {
+    const rows = await this.readSheet('Suppliers');
+    if (rows.length < 2) return [];
+    return rows.slice(1).map((row: any[]) => ({
+      id: row[0],
+      name: row[1],
+      contactPerson: row[2],
+      phone: row[3],
+      email: row[4],
+      address: row[5],
+      status: 'Active' // Default
+    }));
+  }
+
+  // 8. Fetch Movements
+  public async fetchMovements(): Promise<StockMovement[]> {
+    const rows = await this.readSheet('Movements');
+    if (rows.length < 2) return [];
+    return rows.slice(1).map((row: any[]) => ({
+      id: row[0],
+      itemId: row[1],
+      type: row[2] as any,
+      quantity: Number(row[3]),
+      date: row[4],
+      reason: row[5],
+      userId: row[6],
+      notes: row[7]
+    }));
+  }
+
+  // 9. Fetch Expenses
+  public async fetchExpenses(): Promise<any[]> {
+    const rows = await this.readSheet('Expenses');
+    if (rows.length < 2) return [];
+    return rows.slice(1).map((row: any[]) => ({
+      id: row[0],
+      description: row[1],
+      amount: Number(row[2]),
+      category: row[3],
+      date: row[4]
+    }));
+  }
+
+  // 10. Fetch Wallet
+  public async fetchWallet(): Promise<any[]> {
+    const rows = await this.readSheet('Wallet');
+    if (rows.length < 2) return [];
+    return rows.slice(1).map((row: any[]) => ({
+      id: row[0],
+      type: row[1],
+      amount: Number(row[2]),
+      date: row[3],
+      reason: row[4],
+      userId: row[5],
+      userName: row[6]
+    }));
+  }
+
+  // 11. Fetch Categories
+  public async fetchCategories(): Promise<string[]> {
+    const rows = await this.readSheet('Categories');
+    if (rows.length < 2) return [];
+    return rows.slice(1).map((row: any[]) => row[0]).filter(Boolean);
+  }
+
+  // 12. Fetch Company Info
+  public async fetchCompanyInfo(): Promise<any> {
+    const rows = await this.readSheet('CompanyInfo');
+    if (rows.length < 2) return {};
+    const info: any = {};
+    rows.slice(1).forEach((row: any[]) => {
+      if(row[0]) info[row[0]] = row[1];
+    });
+    return info;
+  }
+
+  // 13. Fetch Users
+  public async fetchUsers(): Promise<any[]> {
+    const rows = await this.readSheet('Users');
+    if (rows.length < 2) return [];
+    return rows.slice(1).map((row: any[]) => ({
+      id: row[0],
+      username: row[1],
+      password: row[2],
+      name: row[3],
+      role: row[4],
+      lastLogin: row[5]
+    }));
+  }
+
+  // Helper to read sheet
+  private async readSheet(sheetName: string): Promise<any[][]> {
+    if (!this.tokens || !this.spreadsheetId) throw new Error('Not connected');
+    
+    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${sheetName}!A:Z`, {
+      headers: { 'Authorization': `Bearer ${this.tokens.access_token}` },
+    });
+
+    if (!response.ok) await this.handleError(response);
+    
+    const data = await response.json();
+    return data.values || [];
+  }
+
+  // 14. Fetch All Data
+  public async fetchAll() {
+      if (!this.isAuthenticated() || !this.hasSpreadsheet()) throw new Error('Not connected');
+      
+      const [items, suppliers, movements, expenses, wallet, categories, companyInfo, users] = await Promise.all([
+          this.fetchItems(),
+          this.fetchSuppliers(),
+          this.fetchMovements(),
+          this.fetchExpenses(),
+          this.fetchWallet(),
+          this.fetchCategories(),
+          this.fetchCompanyInfo(),
+          this.fetchUsers()
+      ]);
+
+      return { items, suppliers, movements, expenses, wallet, categories, companyInfo, users };
   }
 }
 

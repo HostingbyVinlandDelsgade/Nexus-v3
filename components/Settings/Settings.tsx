@@ -11,7 +11,8 @@ const Settings: React.FC = () => {
     updatePasscode, verifyPasscode,
     exportData, importData, resetSystemData, factoryReset,
     companyInfo, updateCompanyInfo,
-    users, addUser, updateUser, deleteUser
+    users, addUser, updateUser, deleteUser,
+    loadFromGoogle
   } = useInventory();
 
   // Settings Lock State
@@ -41,8 +42,8 @@ const Settings: React.FC = () => {
   const [apiMessage, setApiMessage] = useState({ type: '', text: '' });
 
   // Google Sheets State
-  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoadingCloud, setIsLoadingCloud] = useState(false);
 
   useEffect(() => {
       setCompanyForm(companyInfo);
@@ -116,6 +117,23 @@ const Settings: React.FC = () => {
           alert(`Sync failed: ${error.message}`);
       } finally {
           setIsSyncing(false);
+      }
+  };
+
+  const handleLoadFromCloud = async () => {
+      if (!isGoogleConnected) return;
+      if (!window.confirm('WARNING: This will OVERWRITE your current local data with data from Google Sheets.\n\nAre you sure you want to proceed?')) return;
+      
+      setIsLoadingCloud(true);
+      try {
+          await loadFromGoogle();
+          alert('Data successfully loaded from Google Sheets!');
+          window.location.reload(); // Reload to ensure all state is fresh
+      } catch (error: any) {
+          console.error('Load failed:', error);
+          alert(`Failed to load data: ${error.message}`);
+      } finally {
+          setIsLoadingCloud(false);
       }
   };
 
@@ -418,11 +436,19 @@ const Settings: React.FC = () => {
                               </span>
                               <button 
                                   onClick={handleSyncNow}
-                                  disabled={isSyncing}
+                                  disabled={isSyncing || isLoadingCloud}
                                   className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors disabled:opacity-50"
                               >
                                   <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} /> 
                                   {isSyncing ? 'Syncing...' : 'Sync Now'}
+                              </button>
+                              <button 
+                                  onClick={handleLoadFromCloud}
+                                  disabled={isSyncing || isLoadingCloud}
+                                  className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-100 text-sm font-medium transition-colors disabled:opacity-50"
+                              >
+                                  <Download size={14} className={isLoadingCloud ? 'animate-bounce' : ''} /> 
+                                  {isLoadingCloud ? 'Loading...' : 'Load from Cloud'}
                               </button>
                           </div>
                       ) : (
