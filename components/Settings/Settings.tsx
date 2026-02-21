@@ -7,6 +7,7 @@ import googleSheetsService from '../../services/googleSheetsService';
 
 const Settings: React.FC = () => {
   const { 
+    items, suppliers, movements,
     updatePasscode, verifyPasscode,
     exportData, importData, resetSystemData, factoryReset,
     companyInfo, updateCompanyInfo,
@@ -98,12 +99,18 @@ const Settings: React.FC = () => {
       if (!isGoogleConnected) return;
       setIsSyncing(true);
       try {
-          // TODO: Implement full sync logic (read/write)
-          // For now, just create spreadsheet if missing
           if (!googleSheetsService.hasSpreadsheet()) {
               await googleSheetsService.createSpreadsheet();
           }
-          alert('Sync completed successfully!');
+
+          // Sync Items
+          await googleSheetsService.syncItems(items);
+          
+          // TODO: Implement syncSuppliers and syncMovements in googleSheetsService
+          // await googleSheetsService.syncSuppliers(suppliers);
+          // await googleSheetsService.syncMovements(movements);
+
+          alert('Sync completed successfully! Items have been uploaded to Google Sheets.');
       } catch (error: any) {
           console.error('Sync failed:', error);
           alert(`Sync failed: ${error.message}`);

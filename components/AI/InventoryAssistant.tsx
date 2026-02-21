@@ -17,21 +17,21 @@ const InventoryAssistant: React.FC = () => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-xl p-6 text-white shadow-lg mb-8">
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-8">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/10 rounded-lg">
-            <Bot size={24} className="text-indigo-300" />
+          <div className="p-2 bg-indigo-50 rounded-lg">
+            <Bot size={24} className="text-indigo-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-lg">AI Inventory Insights</h3>
-            <p className="text-indigo-200 text-sm">Powered by Gemini</p>
+            <h3 className="font-semibold text-lg text-gray-900">AI Inventory Insights</h3>
+            <p className="text-indigo-600 text-xs font-medium">Powered by Gemini</p>
           </div>
         </div>
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           {loading ? 'Analyzing...' : 'Generate Analysis'}
@@ -39,13 +39,15 @@ const InventoryAssistant: React.FC = () => {
       </div>
 
       {insight ? (
-        <div className="prose prose-invert max-w-none prose-sm bg-black/20 p-4 rounded-lg border border-white/5">
+        <div className="prose prose-sm max-w-none bg-gray-50 p-4 rounded-lg border border-gray-100 text-gray-700">
             <ReactMarkdown>{insight}</ReactMarkdown>
         </div>
       ) : (
-        <p className="text-indigo-200 text-sm bg-black/20 p-4 rounded-lg border border-white/5">
-          Click "Generate Analysis" to get a comprehensive summary of your inventory status, value distribution, and reorder recommendations based on current stock levels and recent movements.
-        </p>
+        <div className="bg-gray-300/50 p-4 rounded-lg border border-gray-200/50">
+          <p className="text-indigo-300 text-sm font-medium">
+            Click "Generate Analysis" to get a comprehensive summary of your inventory status, value distribution, and reorder recommendations based on current stock levels and recent movements.
+          </p>
+        </div>
       )}
     </div>
   );

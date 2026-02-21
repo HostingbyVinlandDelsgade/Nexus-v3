@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { InventoryItem, Supplier, StockMovement, MovementType, Expense, WalletTransaction, WalletTransactionType, ReceiptItem, CompanyInfo, User, UserRole } from '../types';
+import googleSheetsService from '../services/googleSheetsService';
 
 interface InventoryContextType {
   items: InventoryItem[];
@@ -46,6 +47,10 @@ interface InventoryContextType {
   importData: (fileContent: string) => boolean;
   resetSystemData: () => void;
   factoryReset: () => void;
+  
+  // Google Sheets
+  isGoogleConnected: boolean;
+  syncToGoogle: () => Promise<void>;
 }
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
@@ -262,6 +267,30 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : DEFAULT_COMPANY_INFO;
   });
 
+  // Google Sheets State
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+
+  // Initialize Google Auth
+  useEffect(() => {
+    googleSheetsService.loadTokens();
+    googleSheetsService.loadSpreadsheetId();
+    setIsGoogleConnected(googleSheetsService.isAuthenticated());
+  }, []);
+
+  // Automatic Sync Effect
+  useEffect(() => {
+    if (!isGoogleConnected || isResettingRef.current) return;
+
+    const syncTimer = setTimeout(() => {
+      console.log('Auto-syncing to Google Sheets...');
+      googleSheetsService.syncAll(items, suppliers, movements).catch(err => {
+        console.error('Auto-sync failed:', err);
+      });
+    }, 5000); // Debounce for 5 seconds
+
+    return () => clearTimeout(syncTimer);
+  }, [items, suppliers, movements, isGoogleConnected]);
+
   // Calculate current wallet balance derived from history
   const walletBalance = walletTransactions.reduce((acc, tx) => {
     if (tx.type === 'DEPOSIT' || tx.type === 'SALE') return acc + tx.amount;
@@ -289,6 +318,12 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
 
   }, [items, suppliers, movements, expenses, walletTransactions, passcode, users, categories, companyInfo, currentUser]);
+
+  const syncToGoogle = async () => {
+    if (isGoogleConnected) {
+      await googleSheetsService.syncAll(items, suppliers, movements);
+    }
+  };
 
   // --- CRUD Operations ---
 
@@ -531,7 +566,8 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       login, logout, addUser, updateUser, deleteUser,
       verifyPasscode, updatePasscode,
       exportData, importData, resetSystemData, factoryReset,
-      isAuthenticated: !!currentUser
+      isAuthenticated: !!currentUser,
+      isGoogleConnected, syncToGoogle
     }}>
       {children}
     </InventoryContext.Provider>

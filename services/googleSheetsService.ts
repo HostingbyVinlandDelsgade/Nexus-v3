@@ -137,7 +137,63 @@ class GoogleSheetsService {
     }
   }
 
-  // 3. Fetch Items (Read all items from sheet)
+  // 3. Sync Suppliers
+  public async syncSuppliers(suppliers: Supplier[]): Promise<void> {
+    if (!this.tokens || !this.spreadsheetId) return;
+
+    const header = ['id', 'name', 'contactPerson', 'phone', 'email', 'address'];
+    const rows = suppliers.map(s => [s.id, s.name, s.contactPerson, s.phone, s.email, s.address]);
+    const values = [header, ...rows];
+
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/Suppliers!A1:F${values.length}?valueInputOption=USER_ENTERED`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${this.tokens.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values }),
+    });
+  }
+
+  // 4. Sync Movements
+  public async syncMovements(movements: StockMovement[]): Promise<void> {
+    if (!this.tokens || !this.spreadsheetId) return;
+
+    const header = ['id', 'itemId', 'type', 'quantity', 'date', 'reason', 'userId', 'notes'];
+    const rows = movements.map(m => [
+      m.id, 
+      m.itemId, 
+      m.type, 
+      m.quantity, 
+      m.date, 
+      m.reason, 
+      m.userId || 'System',
+      m.notes || ''
+    ]);
+    const values = [header, ...rows];
+
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/Movements!A1:H${values.length}?valueInputOption=USER_ENTERED`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${this.tokens.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values }),
+    });
+  }
+
+  // 5. Sync All Data
+  public async syncAll(items: InventoryItem[], suppliers: Supplier[], movements: StockMovement[]): Promise<void> {
+      if (!this.isAuthenticated() || !this.hasSpreadsheet()) return;
+      
+      await Promise.all([
+          this.syncItems(items),
+          this.syncSuppliers(suppliers),
+          this.syncMovements(movements)
+      ]);
+  }
+
+  // 6. Fetch Items (Read all items from sheet)
   public async fetchItems(): Promise<InventoryItem[]> {
     if (!this.tokens || !this.spreadsheetId) throw new Error('Not connected to Google Sheets');
 
