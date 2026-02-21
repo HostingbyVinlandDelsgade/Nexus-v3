@@ -55,26 +55,43 @@ const Settings: React.FC = () => {
       setIsGoogleConnected(googleSheetsService.isAuthenticated());
   }, [companyInfo]);
 
-  const handleConnectGoogle = async () => {
-      try {
-          // Check server health first
-          const health = await fetch('/api/health').catch(() => null);
-          if (!health || !health.ok) {
-              throw new Error('Server is not reachable. Please ensure the backend is running.');
-          }
-
-          const response = await fetch('/api/auth/url');
-          if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}));
-              throw new Error(errorData.error || `Server error: ${response.status}`);
-          }
-          const { url } = await response.json();
-          if (!url) throw new Error('No auth URL returned');
-          window.location.href = url;
-      } catch (error: any) {
-          console.error('Failed to get auth URL:', error);
-          alert(`Failed to initiate Google connection: ${error.message}`);
-      }
+  const handleConnectGoogle = () => {
+      // Client-side OAuth Flow for Static Hosting (Cloudflare Workers)
+      const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: '293634335273-jrie3vljiicvn8l7kuno5sem6qcv80t5.apps.googleusercontent.com',
+          scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
+          callback: async (tokenResponse: any) => {
+              if (tokenResponse && tokenResponse.access_token) {
+                  // Save tokens using the service
+                  googleSheetsService.setTokens({
+                      access_token: tokenResponse.access_token,
+                      // Client-side flow doesn't return refresh token by default without 'offline' access_type and backend exchange
+                      // For this serverless version, we'll just use the access token and re-prompt if needed
+                      refresh_token: '', 
+                      scope: tokenResponse.scope,
+                      token_type: tokenResponse.token_type,
+                      expiry_date: Date.now() + (tokenResponse.expires_in * 1000)
+                  });
+                  
+                  setIsGoogleConnected(true);
+                  
+                  // Auto-create spreadsheet if needed
+                  if (!googleSheetsService.hasSpreadsheet()) {
+                      try {
+                          await googleSheetsService.createSpreadsheet();
+                          alert('Connected and Inventory Spreadsheet created!');
+                      } catch (err) {
+                          console.error('Failed to create sheet:', err);
+                          alert('Connected, but failed to create spreadsheet. Try syncing manually.');
+                      }
+                  } else {
+                      alert('Successfully connected to Google Drive!');
+                  }
+              }
+          },
+      });
+      
+      client.requestAccessToken();
   };
 
   const handleSyncNow = async () => {
