@@ -54,6 +54,16 @@ class GoogleSheetsService {
     }
   }
 
+  public clearSpreadsheetId() {
+    this.spreadsheetId = null;
+    localStorage.removeItem('google_spreadsheet_id');
+  }
+
+  public clearTokens() {
+    this.tokens = null;
+    localStorage.removeItem('google_tokens');
+  }
+
   public isAuthenticated(): boolean {
     return !!this.tokens;
   }
@@ -138,7 +148,7 @@ class GoogleSheetsService {
     });
 
     if (!response.ok) {
-        throw new Error('Failed to sync items');
+        await this.handleError(response);
     }
   }
 
@@ -285,7 +295,7 @@ class GoogleSheetsService {
 
   // Helper to write to sheet
   private async writeSheet(sheetName: string, values: any[][]): Promise<void> {
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${sheetName}!A1:Z${values.length}?valueInputOption=USER_ENTERED`, {
+    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${sheetName}!A1:Z${values.length}?valueInputOption=USER_ENTERED`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${this.tokens!.access_token}`,
@@ -293,6 +303,30 @@ class GoogleSheetsService {
       },
       body: JSON.stringify({ values }),
     });
+
+    if (!response.ok) {
+        await this.handleError(response);
+    }
+  }
+
+  private async handleError(response: Response) {
+      const text = await response.text();
+      let errMsg = response.statusText;
+      try {
+          const json = JSON.parse(text);
+          errMsg = json.error?.message || errMsg;
+      } catch (e) {}
+
+      if (response.status === 401) {
+          this.clearTokens();
+          throw new Error('Authentication expired. Please reconnect Google Drive.');
+      }
+      if (response.status === 404) {
+          this.clearSpreadsheetId();
+          throw new Error('Spreadsheet not found (it may have been deleted). Please click Sync again to create a new one.');
+      }
+
+      throw new Error(`Google Sheets API Error: ${errMsg}`);
   }
 
   // 11. Sync All Data
