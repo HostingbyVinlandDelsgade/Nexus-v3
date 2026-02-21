@@ -80,7 +80,11 @@ class GoogleSheetsService {
           { properties: { title: 'Items' } },
           { properties: { title: 'Suppliers' } },
           { properties: { title: 'Movements' } },
-          { properties: { title: 'Settings' } },
+          { properties: { title: 'Expenses' } },
+          { properties: { title: 'Wallet' } },
+          { properties: { title: 'Categories' } },
+          { properties: { title: 'CompanyInfo' } },
+          { properties: { title: 'Users' } },
         ],
       }),
     });
@@ -95,101 +99,87 @@ class GoogleSheetsService {
     return data.spreadsheetId;
   }
 
-  // 2. Sync Items (Write all items to sheet)
-  public async syncItems(items: InventoryItem[]): Promise<void> {
-    if (!this.tokens || !this.spreadsheetId) throw new Error('Not connected to Google Sheets');
+  // ... (syncItems, syncSuppliers, syncMovements remain the same) ...
 
-    // Convert items to rows
-    // Header: ID, Name, SKU, Category, Quantity, Cost, Price...
-    const header = ['id', 'name', 'sku', 'category', 'quantity', 'unitCost', 'retailPrice', 'wholesalePrice', 'minStockLevel', 'supplierId', 'description', 'imageUrl', 'images', 'imageFit', 'movementSpeed'];
-    
-    const rows = items.map(item => [
-      item.id,
-      item.name,
-      item.sku,
-      item.category,
-      item.quantity,
-      item.unitCost,
-      item.retailPrice,
-      item.wholesalePrice,
-      item.minStockLevel,
-      item.supplierId,
-      item.description,
-      item.imageUrl || '',
-      JSON.stringify(item.images || []), // Store arrays as JSON strings
-      item.imageFit || 'cover',
-      item.movementSpeed
-    ]);
-
-    const values = [header, ...rows];
-
-    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/Items!A1:O${values.length}?valueInputOption=USER_ENTERED`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${this.tokens.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ values }),
-    });
-
-    if (!response.ok) {
-        throw new Error('Failed to sync items');
-    }
-  }
-
-  // 3. Sync Suppliers
-  public async syncSuppliers(suppliers: Supplier[]): Promise<void> {
+  // 5. Sync Expenses
+  public async syncExpenses(expenses: any[]): Promise<void> {
     if (!this.tokens || !this.spreadsheetId) return;
-
-    const header = ['id', 'name', 'contactPerson', 'phone', 'email', 'address'];
-    const rows = suppliers.map(s => [s.id, s.name, s.contactPerson, s.phone, s.email, s.address]);
+    const header = ['id', 'description', 'amount', 'category', 'date'];
+    const rows = expenses.map(e => [e.id, e.description, e.amount, e.category, e.date]);
     const values = [header, ...rows];
-
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/Suppliers!A1:F${values.length}?valueInputOption=USER_ENTERED`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${this.tokens.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ values }),
-    });
+    await this.writeSheet('Expenses', values);
   }
 
-  // 4. Sync Movements
-  public async syncMovements(movements: StockMovement[]): Promise<void> {
+  // 6. Sync Wallet
+  public async syncWallet(transactions: any[]): Promise<void> {
     if (!this.tokens || !this.spreadsheetId) return;
-
-    const header = ['id', 'itemId', 'type', 'quantity', 'date', 'reason', 'userId', 'notes'];
-    const rows = movements.map(m => [
-      m.id, 
-      m.itemId, 
-      m.type, 
-      m.quantity, 
-      m.date, 
-      m.reason, 
-      m.userId || 'System',
-      m.notes || ''
-    ]);
+    const header = ['id', 'type', 'amount', 'date', 'reason', 'userId', 'userName'];
+    const rows = transactions.map(t => [t.id, t.type, t.amount, t.date, t.reason, t.userId || '', t.userName || '']);
     const values = [header, ...rows];
+    await this.writeSheet('Wallet', values);
+  }
 
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/Movements!A1:H${values.length}?valueInputOption=USER_ENTERED`, {
+  // 7. Sync Categories
+  public async syncCategories(categories: string[]): Promise<void> {
+    if (!this.tokens || !this.spreadsheetId) return;
+    const header = ['category'];
+    const rows = categories.map(c => [c]);
+    const values = [header, ...rows];
+    await this.writeSheet('Categories', values);
+  }
+
+  // 8. Sync Company Info
+  public async syncCompanyInfo(info: any): Promise<void> {
+    if (!this.tokens || !this.spreadsheetId) return;
+    const header = ['key', 'value'];
+    const rows = Object.entries(info);
+    const values = [header, ...rows];
+    await this.writeSheet('CompanyInfo', values);
+  }
+
+  // 9. Sync Users
+  public async syncUsers(users: any[]): Promise<void> {
+    if (!this.tokens || !this.spreadsheetId) return;
+    const header = ['id', 'username', 'password', 'name', 'role', 'lastLogin'];
+    const rows = users.map(u => [u.id, u.username, u.password, u.name, u.role, u.lastLogin || '']);
+    const values = [header, ...rows];
+    await this.writeSheet('Users', values);
+  }
+
+  // Helper to write to sheet
+  private async writeSheet(sheetName: string, values: any[][]): Promise<void> {
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${sheetName}!A1:Z${values.length}?valueInputOption=USER_ENTERED`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${this.tokens.access_token}`,
+        'Authorization': `Bearer ${this.tokens!.access_token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ values }),
     });
   }
 
-  // 5. Sync All Data
-  public async syncAll(items: InventoryItem[], suppliers: Supplier[], movements: StockMovement[]): Promise<void> {
+  // 10. Sync All Data
+  public async syncAll(
+      items: InventoryItem[], 
+      suppliers: Supplier[], 
+      movements: StockMovement[],
+      expenses: any[],
+      wallet: any[],
+      categories: string[],
+      companyInfo: any,
+      users: any[]
+  ): Promise<void> {
       if (!this.isAuthenticated() || !this.hasSpreadsheet()) return;
       
       await Promise.all([
           this.syncItems(items),
           this.syncSuppliers(suppliers),
-          this.syncMovements(movements)
+          this.syncMovements(movements),
+          this.syncExpenses(expenses),
+          this.syncWallet(wallet),
+          this.syncCategories(categories),
+          this.syncCompanyInfo(companyInfo),
+          this.syncUsers(users)
       ]);
   }
 
