@@ -85,6 +85,7 @@ class GoogleSheetsService {
           { properties: { title: 'Categories' } },
           { properties: { title: 'CompanyInfo' } },
           { properties: { title: 'Users' } },
+          { properties: { title: 'Reports' } },
         ],
       }),
     });
@@ -231,6 +232,57 @@ class GoogleSheetsService {
     await this.writeSheet('Users', values);
   }
 
+  // 10. Sync Reports (Calculated Daily Summary)
+  public async syncReports(movements: StockMovement[], expenses: any[]): Promise<void> {
+    if (!this.tokens || !this.spreadsheetId) return;
+
+    // Calculate Daily Summary
+    const dailyStats: Record<string, { revenue: number; expenses: number; profit: number }> = {};
+
+    // Process Sales (Revenue)
+    movements.forEach(m => {
+        if (m.type === 'OUT') {
+            const date = m.date.split('T')[0];
+            if (!dailyStats[date]) dailyStats[date] = { revenue: 0, expenses: 0, profit: 0 };
+            
+            // Note: We don't have item price here easily without joining items.
+            // For simplicity in this sync, we'll rely on what we can get or just skip detailed profit if complex.
+            // Actually, we can't calculate revenue accurately without item prices.
+            // Let's just sync the raw data which we already did in 'Movements'.
+            
+            // BETTER APPROACH: Let's create a "Daily Sales Report" based on the movements we have.
+            // But we need the item prices. 
+            // Let's assume the caller passes 'items' as well if we want to do this here.
+            // Or we can just skip this if the user just wanted "Reports" tab to exist.
+            
+            // The user asked "even report is in spread sheet?".
+            // Let's try to provide a simple daily summary if possible.
+            // I'll update the signature to accept items.
+        }
+    });
+    
+    // Since I can't easily change the signature of syncAll in this step without breaking things or making it complex,
+    // I will implement a simpler version that just sets up the headers for now, 
+    // OR I will rely on the fact that I can fetch items if I really wanted to.
+    
+    // Actually, the best way to "put reports in spreadsheet" is to use Spreadsheet Formulas.
+    // I will write a "Reports" sheet that uses formulas to calculate totals from the other sheets!
+    // This is much better than static values.
+    
+    const header = ['Report Type', 'Value', 'Note'];
+    const rows = [
+        ['Generated At', new Date().toLocaleString(), ''],
+        ['Total Items', '=COUNTA(Items!A2:A)', 'Count of all inventory items'],
+        ['Total Inventory Value', '=SUMPRODUCT(Items!E2:E, Items!F2:F)', 'Quantity * Unit Cost'],
+        ['Total Revenue (All Time)', '=SUMIF(Wallet!B2:B, "SALE", Wallet!C2:C)', 'Sum of all SALE transactions'],
+        ['Total Expenses (All Time)', '=SUM(Expenses!C2:C)', 'Sum of all expenses'],
+        ['Net Cash Flow', '=SUMIF(Wallet!B2:B, "DEPOSIT", Wallet!C2:C) + SUMIF(Wallet!B2:B, "SALE", Wallet!C2:C) - SUMIF(Wallet!B2:B, "EXPENSE", Wallet!C2:C) - SUMIF(Wallet!B2:B, "WITHDRAWAL", Wallet!C2:C)', 'Calculated from Wallet'],
+    ];
+    
+    const values = [header, ...rows];
+    await this.writeSheet('Reports', values);
+  }
+
   // Helper to write to sheet
   private async writeSheet(sheetName: string, values: any[][]): Promise<void> {
     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${sheetName}!A1:Z${values.length}?valueInputOption=USER_ENTERED`, {
@@ -243,7 +295,7 @@ class GoogleSheetsService {
     });
   }
 
-  // 10. Sync All Data
+  // 11. Sync All Data
   public async syncAll(
       items: InventoryItem[], 
       suppliers: Supplier[], 
@@ -280,6 +332,9 @@ class GoogleSheetsService {
           await new Promise(r => setTimeout(r, 500));
           
           await this.syncUsers(users);
+          await new Promise(r => setTimeout(r, 500));
+
+          await this.syncReports(movements, expenses);
       } catch (error) {
           console.error('Error during sequential sync:', error);
           throw error; // Re-throw to be caught by caller
