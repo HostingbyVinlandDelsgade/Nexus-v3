@@ -316,13 +316,28 @@ const PointOfSale: React.FC = () => {
                         )}
                         
                         {/* Info / Details Button - Always Visible */}
-                        <div 
-                            onClick={(e) => handleViewDetails(e, item)}
-                            className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full text-gray-700 shadow-sm cursor-pointer z-20 hover:bg-white hover:text-indigo-600 transition-colors"
-                            title="View Details"
-                        >
-                            <Info size={16} />
+                        <div className="absolute top-2 right-2 flex flex-col gap-2 z-20">
+                            <div 
+                                onClick={(e) => handleViewDetails(e, item)}
+                                className="bg-white/90 p-1.5 rounded-full text-gray-700 shadow-sm cursor-pointer hover:bg-white hover:text-indigo-600 transition-colors"
+                                title="View Details"
+                            >
+                                <Info size={16} />
+                            </div>
                         </div>
+                        
+                        {/* Center Eye Icon - Visible on Hover */}
+                        {displayImage && (
+                            <div 
+                                onClick={(e) => handlePreviewImage(e, item)}
+                                className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 group-hover/image:opacity-100 transition-opacity z-10 cursor-pointer"
+                                title="View Photo"
+                            >
+                                <div className="bg-white/90 p-2.5 rounded-full text-gray-700 shadow-md hover:bg-white hover:text-indigo-600 transition-all transform hover:scale-110">
+                                    <Eye size={24} />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Content Section */}
@@ -381,7 +396,7 @@ const PointOfSale: React.FC = () => {
           )}
         </div>
         {/* Mobile Floating Cart Button */}
-        <div className="fixed bottom-24 left-4 right-4 lg:hidden z-50">
+        <div className="fixed bottom-24 left-4 right-4 lg:hidden z-20">
             <button 
                 onClick={() => setMobileView('cart')}
                 className="w-full bg-indigo-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between font-bold"

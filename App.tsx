@@ -118,53 +118,8 @@ const App = () => {
         </div>
       </aside>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 flex justify-around items-center px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        {!isCashier && (
-        <button 
-            onClick={() => setCurrentView('dashboard')}
-            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'dashboard' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-        >
-            <LayoutDashboard size={20} />
-            <span className="text-[10px] font-medium mt-1">Home</span>
-        </button>
-        )}
-        <button 
-            onClick={() => setCurrentView('pos')}
-            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'pos' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-        >
-            <ShoppingCart size={20} />
-            <span className="text-[10px] font-medium mt-1">POS</span>
-        </button>
-        <button 
-            onClick={() => setCurrentView('inventory')}
-            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'inventory' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-        >
-            <Package size={20} />
-            <span className="text-[10px] font-medium mt-1">Items</span>
-        </button>
-        <button 
-            onClick={() => setIsSidebarCollapsed(false)} // Reusing sidebar state to maybe show a menu modal or just toggle sidebar? 
-            // Actually, sidebar is hidden on mobile. Let's make a simple menu for other links or just expose them.
-            // For now, let's just show the sidebar as a drawer if clicked?
-            // Or better, just add the other links here if they fit, or a "More" tab.
-            // Let's use a "More" tab that sets view to 'settings' or opens a drawer.
-            // Given the constraints, let's just map 'Menu' to toggling the sidebar visibility on mobile (which we need to implement).
-            // But sidebar is `hidden md:flex`. We need to make it visible on mobile when toggled.
-            className={`flex flex-col items-center p-2 rounded-lg transition-colors text-gray-400 hover:text-gray-600`}
-            onClick={() => {
-                // Toggle a mobile menu state
-                const mobileMenu = document.getElementById('mobile-sidebar');
-                if (mobileMenu) mobileMenu.classList.toggle('hidden');
-            }}
-        >
-            <Menu size={20} />
-            <span className="text-[10px] font-medium mt-1">Menu</span>
-        </button>
-      </nav>
-
       {/* Mobile Sidebar Drawer (Hidden by default) */}
-      <div id="mobile-sidebar" className="fixed inset-0 z-[100] bg-black/50 hidden md:hidden" onClick={(e) => {
+      <div id="mobile-sidebar" className="fixed inset-0 z-[99999] bg-black/50 hidden md:hidden" onClick={(e) => {
           if(e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
       }}>
           <div className="w-64 h-full bg-slate-900 text-white p-4 flex flex-col animate-in slide-in-from-left duration-200">
@@ -285,15 +240,6 @@ const App = () => {
               </div>
           </div>
       </main>
-
-      {/* Mobile Nav Bottom Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-3 z-20 safe-area-bottom">
-          {!isCashier && <button onClick={() => setCurrentView('dashboard')} className={`p-2 rounded-lg ${currentView === 'dashboard' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><LayoutDashboard size={24}/></button>}
-          <button onClick={() => setCurrentView('pos')} className={`p-2 rounded-lg ${currentView === 'pos' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><ShoppingCart size={24}/></button>
-          {!isCashier && <button onClick={() => setCurrentView('reports')} className={`p-2 rounded-lg ${currentView === 'reports' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><BarChart3 size={24}/></button>}
-          <button onClick={() => setCurrentView('inventory')} className={`p-2 rounded-lg ${currentView === 'inventory' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><Package size={24}/></button>
-          {!isCashier && <button onClick={() => setCurrentView('settings')} className={`p-2 rounded-lg ${currentView === 'settings' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400'}`}><SettingsIcon size={24}/></button>}
-      </div>
     </div>
   );
 };
