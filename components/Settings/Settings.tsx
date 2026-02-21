@@ -42,6 +42,7 @@ const Settings: React.FC = () => {
   const [apiMessage, setApiMessage] = useState({ type: '', text: '' });
 
   // Google Sheets State
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoadingCloud, setIsLoadingCloud] = useState(false);
 

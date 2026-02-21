@@ -330,7 +330,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
   }, [items, suppliers, movements, expenses, walletTransactions, passcode, users, categories, companyInfo, currentUser]);
 
   const syncToGoogle = async () => {
-    if (isGoogleConnected) {
+    if (googleSheetsService.isAuthenticated()) {
       await googleSheetsService.syncAll(
         items, 
         suppliers, 
@@ -345,7 +345,8 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   const loadFromGoogle = async () => {
-      if (!isGoogleConnected) throw new Error("Not connected to Google Drive");
+      // Check service directly to ensure we have latest auth state
+      if (!googleSheetsService.isAuthenticated()) throw new Error("Not connected to Google Drive");
       
       const data = await googleSheetsService.fetchAll();
       
